@@ -10,7 +10,6 @@ if( open FH,'<', $file ) {
 	# Find the local user from the sender address
 	if( $users =~ /^$sender\s*:\s*(.+?)\@localhost\s*$/m ) {
 		$user = $1;
-		$id = $ENV;
 
 		# Scan the new messages in their Sent folder
 		for my $msg (glob "/home/$user/Maildir/.Sent/new/*") {
