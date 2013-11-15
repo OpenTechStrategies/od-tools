@@ -63,6 +63,7 @@ sub wikiGetProperties;
 sub wikiGetPreferences;
 sub wikiPropertyChanges;
 sub wikiGetHashPath;
+sub wikiGetArticleID;
 
 # Don't verify SSL certs since we need to connect to many domains with invalid certs
 $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
@@ -984,4 +985,19 @@ sub wikiGetHashPath {
 	my $path = '';
 	$path .= substr( $hash, 0, $_ ) . '/' for( 1 .. 2 );
 	return $path;
+}
+
+# Return the article ID of the passed title
+sub wikiGetArticleID {
+	my $api = shift;
+	$api =~ s/index/api/;
+	%data = (
+		action => 'query',
+		titles => shift,
+		format => 'xml',
+		prop => 'info'
+	);
+	$res = $::client->post( $api, \%data );
+	$xml = XMLin( $res->content );
+	return $xml->{'query'}->{'pages'}->{'page'}->{'pageid'};
 }
