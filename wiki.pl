@@ -22,7 +22,7 @@
 # - Changes login and edit to API in Nov 2013 which will prevent it from working in older MediaWiki versions
 #
 
-$::wikipl_version = '1.16.0'; # 2013-11-15
+$::wikipl_version = '1.16.1'; # 2013-11-15
 
 use HTTP::Request;
 use LWP::UserAgent;
@@ -62,6 +62,7 @@ sub wikiParse;
 sub wikiGetProperties;
 sub wikiGetPreferences;
 sub wikiPropertyChanges;
+sub wikiGetHashPath;
 
 # Don't verify SSL certs since we need to connect to many domains with invalid certs
 $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
@@ -975,4 +976,12 @@ sub wikiPropertyChanges {
 		# Return the record type and the hash of changed properties
 		return ( $brace1[0]->{NAME}, \%args1, \%args2, \%args );
 	}
+}
+
+# Return the hash path for the passed file title
+sub wikiGetHashPath {
+	my $hash = md5_hex( shift );
+	my $path = '';
+	$path .= substr( $hash, 0, $_ ) . '/' for( 1 .. 2 );
+	return $path;
 }
