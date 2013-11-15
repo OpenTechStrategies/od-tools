@@ -112,7 +112,6 @@ sub wikiLogin {
 		lgpassword => $pass
 	);
 	$res = $::client->post( $api, \%data );
-print Dumper($res);
 	$xml = XMLin( $res->content );
 	$data{lgtoken} = $xml->{'login'}->{'token'};
 	$res = $::client->post( $api, \%data );
@@ -140,40 +139,38 @@ sub wikiLogout {
 # Edit a MediaWiki page
 # todo: don't return success if edited succeeded but made no changes
 sub wikiEdit {
-	my ( $wiki, $title, $content, $comment, $minor ) = @_;
-	my $utitle = encodeTitle( $title );
-	my $success = 0;
-	my $err = 'ERROR';
-	my $retries = 1;
-	logAdd "Attempting to edit \"$title\" on $wiki";
-	while ( $retries-- ) {
+	my ( $api, $title, $content, $comment, $minor ) = @_;
+	$api =~ s/index/api/;
 
-		# Request the page for editing and extract the edit-token
-		my $response = $::client->get( "$wiki?title=$utitle&action=edit&useskin=standard&nora=1" );
-		if( $response->is_success and (
-				$response->content =~ m|<input type=['"]hidden["'] value=['"](.+?)["'] name=['"]wpEditToken["'] />|
-		)) {
+	# Get edit token
+	%data = (
+		action => 'tokens',
+		format => 'xml',
+		type => 'edit'
+	);
+	$res = $::client->post( $api, \%data );
+	$xml = XMLin( $res->content );
+	$token = $xml->{'tokens'}->{'edittoken'};
 
-			# Got token etc, construct a form to post
-			my %form = ( wpEditToken => $1, wpTextbox1 => $content, wpSummary => $comment, wpSave => 'Save page' );
-			$form{wpMinoredit}   = 1  if $minor;
-			$form{wpSection}     = $1 if $response->content =~ m|<input type=['"]hidden["'] value=['"](.*?)["'] name=['"]wpSection["'] />|;
-			$form{wpStarttime}   = $1 if $response->content =~ m|<input type=['"]hidden["'] value=['"](.*?)["'] name=['"]wpStarttime["'] />|;
-			$form{wpEdittime}    = $1 if $response->content =~ m|<input type=['"]hidden["'] value=['"](.*?)["'] name=['"]wpEdittime["'] />|;
-			$form{wpAutoSummary} = $1 if $response->content =~ m|<input type=['"]hidden["'] value=['"](.*?)["'] name=['"]wpAutoSummary["'] />|;
-			$form{wpAutoSummary} = $1 if $response->content =~ m|<input name=['"]wpAutoSummary["'] type=['"]hidden["'] value=['"](.*?)["'] />|;
-
-			# Post the form
-			$response = $::client->post( "$wiki?title=$utitle&action=submit&useskin=standard", \%form );
-			if( $response->content =~ /<!-- start content -->Someone else has changed this page/ ) {
-				$err = 'EDIT CONFLICT';
-				$retries = 0;
-			} else { $success = !$response->is_error }
-
-		} else { $err = $response->is_success ? 'MATCH FAILED' : 'RQST FAILED' }
-
-		if( $success ) { $retries = 0; logAdd "\"$title\" updated." }
-		else { logAdd "$err: Couldn't edit \"$title\" on $wiki!\n" }
+	# Do the edit
+	logAdd "Attempting to edit \"$title\" on $api";
+	%data = (
+		action => 'edit',
+		title => $title,
+		token => $token,
+		text => $content,
+		summary => $comment,
+		minor => $minor ? 1 : 0,
+		format => 'xml',
+	);
+	$res = $::client->post( $api, \%data );
+	$xml = XMLin( $res->content );
+	if( $xml->{'edit'}->{'result'} eq 'Success' ) {
+		$success = 1;
+		logAdd "\"$title\" updated.";
+	} else {
+		$success = 0;
+		logAdd "ERROR: couldn't edit \"$title\" in on \"$api\"! (" . $xml->{'edit'}->{'result'} . ")";
 	}
 	return $success;
 }
