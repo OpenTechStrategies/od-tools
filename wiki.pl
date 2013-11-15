@@ -19,21 +19,17 @@
 #
 # - Source:  http://www.organicdesign.co.nz/wiki.pl
 # - Started: 2008-03-16
-# - Tested versions: 1.6.10, 1.8.4, 1.9.3, 1.10.2, 1.11.0, 1.12.rc1, 1.13.2, 1.14.0, 1.15.1, 1.16.0, 1.17alpha, 1.18.0
+# - Changes login and edit to API in Nov 2013 which will prevent it from working in older MediaWiki versions
 #
-# NOTES REGARDING CHANGING TO PERL PACKAGE AND ADDING API SUPPORT
-# - constructor:
-#   - login
-#   - get wiki version and whether to use HTML or API
-#   - get namespaces
-#   - get messages used in patterns (and make methods use messages in their regexp's so lang-independent)
 
-$::wikipl_version = '1.15.6'; # 2012-09-05
+$::wikipl_version = '1.16.0'; # 2013-11-15
 
 use HTTP::Request;
 use LWP::UserAgent;
+use XML::Simple;
 use POSIX qw( strftime );
 use Digest::MD5 qw( md5_hex );
+use Data::Dumper;
 
 sub wikiLogin;
 sub wikiLogout;
@@ -107,28 +103,26 @@ sub logHash {
 # Login to a MediaWiki
 # todo: check if logged in first
 sub wikiLogin {
-	my ( $wiki, $user, $pass, $domain ) = @_;
-	my $url = "$wiki?title=Special:UserLogin&useskin=standard";
-	my $success = 0;
-	my $retries = 1;
-	while ( $retries-- ) {
-		my $html = '';
-		my $response = $::client->get( $url );
-		if( $response->is_success ) {
-			my $token = $response->content =~ /name=['"]wpLoginToken["']\s*value=['"](.+?)["']/ ? $1 : '';
-			my %form = ( wpName => $user, wpPassword => $pass, wpLoginToken => $token, wpDomain => $domain, wpLoginattempt => 'Log in', wpRemember => '1' );
-			my $response = $::client->post( "$url&action=submitlogin&type=login", \%form );
-			$html = $response->content;
-			$success = $response->is_redirect || ( $response->is_success && $html =~ /You are now logged in/ );
-		}
-		if( $success ) {
-			logAdd "$user successfully logged in to $wiki.";
-			$retries = 0;
-		}
-		else {
-			if( $html =~ /<div class="errorbox">\s*(<h2>.+?<\/h2>\s*)?(.+?)\s*<\/div>/is ) { logAdd "ERROR: $2" }
-			else { logAdd "ERROR: couldn't log $user in to $wiki (" . $response->status_line . ")" }
-		}
+	my ( $api, $user, $pass, $domain ) = @_;
+	$api =~ s/index/api/;
+	%data = (
+		action => 'login',
+		format => 'xml',
+		lgname => $user,
+		lgpassword => $pass
+	);
+	$res = $::client->post( $api, \%data );
+print Dumper($res);
+	$xml = XMLin( $res->content );
+	$data{lgtoken} = $xml->{'login'}->{'token'};
+	$res = $::client->post( $api, \%data );
+	$xml = XMLin( $res->content );
+	if( $xml->{'login'}->{'result'} eq 'Success' ) {
+		$success = 1;
+		logAdd "$user successfully logged in to $api.";
+	} else {
+		$success = 0;
+		logAdd "ERROR: couldn't log $user in to $wiki (" . $xml->{'login'}->{'result'} . ")";
 	}
 	return $success;
 }
