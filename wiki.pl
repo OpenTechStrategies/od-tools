@@ -114,7 +114,7 @@ sub wikiLogin {
 		lgpassword => $pass
 	);
 	$res = $::client->post( $api, \%data );
-	logAdd Dumper($res) unless $res->content;
+	logAdd Dumper($res);
 	$xml = XMLin( $res->content );
 	$data{lgtoken} = $xml->{'login'}->{'token'};
 	$res = $::client->post( $api, \%data );
