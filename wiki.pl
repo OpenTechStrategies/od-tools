@@ -105,7 +105,7 @@ sub logHash {
 # Login to a MediaWiki
 # todo: check if logged in first
 sub wikiLogin {
-	my ( $api, $user, $pass, $domain ) = @_;
+	my( $api, $user, $pass, $domain ) = @_;
 	$api =~ s/index/api/;
 	%data = (
 		action => 'login',
@@ -114,6 +114,7 @@ sub wikiLogin {
 		lgpassword => $pass
 	);
 	$res = $::client->post( $api, \%data );
+	logAdd Dumper($res) unless $res->content;
 	$xml = XMLin( $res->content );
 	$data{lgtoken} = $xml->{'login'}->{'token'};
 	$res = $::client->post( $api, \%data );
@@ -141,7 +142,7 @@ sub wikiLogout {
 # Edit a MediaWiki page
 # todo: don't return success if edited succeeded but made no changes
 sub wikiEdit {
-	my ( $api, $title, $content, $comment, $minor ) = @_;
+	my( $api, $title, $content, $comment, $minor ) = @_;
 	$api =~ s/index/api/;
 
 	# Get edit token
@@ -179,7 +180,7 @@ sub wikiEdit {
 
 # Append a wiki page
 sub wikiAppend {
-	my ( $wiki, $title, $append, $comment ) = @_;
+	my( $wiki, $title, $append, $comment ) = @_;
 	my $content = wikiRawPage( $wiki, $title );
 	$content = '' if $content eq '(There is currently no text in this page)';
 	return wikiEdit( $wiki, $title, $content . $append, $comment );
@@ -366,7 +367,7 @@ sub wikiRestore {
 # Upload a files into a wiki using its Special:Upload page
 # - if dst name is empty, the name of the source file will be used
 sub wikiUploadFile {
-    my ( $wiki, $sourcefile, $destname, $summary ) = @_;
+    my( $wiki, $sourcefile, $destname, $summary ) = @_;
     my $url = "$wiki?title=Special:Upload&useskin=standard";
 
 	# Set dst name from source if empty
@@ -427,7 +428,7 @@ sub wikiUploadFile {
 
 # Delete an uploaded file from a wiki
 sub wikiDeleteFile {
-	my ( $wiki, $imagename, $comment ) = @_;
+	my( $wiki, $imagename, $comment ) = @_;
 	my $url     = "$wiki?title=Image:$imagename&action=delete";
 	my $success = 0;
 	my $err     = 'ERROR';
@@ -466,7 +467,7 @@ sub wikiDeleteFile {
 # Obtain the URL of a file/image in a wiki given the filename
 # - don't supply namespace
 sub wikiGetFileUrl {
-	my ( $wiki, $file ) = @_;
+	my( $wiki, $file ) = @_;
 	my $desc = $::client->get( "$wiki?title=Image:$file&useskin=standard" )->content;
 	return '' unless $desc =~ m|<a href=['"]([^"']+)['"]><img alt=['"]\w+:$file['"]|;
 #	<a href="/files/f/fb/Big_daisy.gif"><img alt="File:Big daisy.gif" 
@@ -480,7 +481,7 @@ sub wikiGetFileUrl {
 # - don't supply namespace on source file article name
 # - if no destination filename is specified, the image name is used
 sub wikiDownloadFile {
-	my ( $wiki, $src, $dst ) = @_;
+	my( $wiki, $src, $dst ) = @_;
 	if( my $url = wikiGetFileURL( $wiki, $src ) ) {
 		logAdd( "Downloading \"$src\" from \"$url\"" );
 		my $file = $1 if $url =~ m|^.+/(.+?)$|;
@@ -495,8 +496,8 @@ sub wikiDownloadFile {
 # Download all uploaded files from a wiki to a local directory
 # - to a maximum of 500 images
 sub wikiDownloadFiles {
-	my ( $wiki, $dir ) = @_;
-	$dir   = $wiki =~ /(https?:\/\/(.+?))\// ? $2 : 'wiki-downloaded-files';
+	my( $wiki, $dir ) = @_;
+	$dir = $wiki =~ /(https?:\/\/(.+?))\// ? $2 : 'wiki-downloaded-files';
 	my $base  = $1;
 	my $list  = $::client->get( "$wiki?title=Special:Imagelist&limit=500&useskin=standard" )->content;
 	my @files = $list =~ /href\s*=\s*['"](\/[^"']+?\/.\/..\/[^'"]+?)["']/g;
@@ -520,7 +521,7 @@ sub wikiDownloadFiles {
 # - we need this working so that we can use a bot to change #security annotations to protection when SS4 ready
 sub wikiProtect {
 	# Standard way first, use API later with wikiGetVersion check
-	 my (
+	 my(
 		$wiki,
 		$title,
 		$comment ,
@@ -584,7 +585,7 @@ sub wikiProtect {
 #   if two have such an id, then the comparison would resort to the second arg and so on
 #   if this process cannot result in an unambiguous update it should fail with an error saying so
 sub wikiUpdateTemplate {
-	my (
+	my(
 		$wiki,
 		$title,
 		$template, # Name of template to update
@@ -664,7 +665,7 @@ sub wikiUpdateTemplate {
 # wpMovetalk (logical checkbox)
 # wpMove (action=submit)
 sub wikiMove {
-	my ( $wiki, $oldname, $newname, $reason, $movetalk ) = @_;
+	my( $wiki, $oldname, $newname, $reason, $movetalk ) = @_;
 	$oldname = encodeTitle( $oldname );
 	my $url = "$wiki?title=Special:Movepage&target=$oldname&useskin=standard";
 	logAdd( "URL=>$url" );
@@ -844,7 +845,7 @@ sub wikiUpdateAccount {
 # Use edit-preview to parse wikitext into HTML
 # - set $links to 1 to return as a list of link titles instead of HTML
 sub wikiParse {
-	my ( $wiki, $content, $links ) = @_;
+	my( $wiki, $content, $links ) = @_;
 
 	# Request the page for editing and extract the edit-token
 	my $html = '';
