@@ -74,8 +74,8 @@ $::client = LWP::UserAgent->new(
 	cookie_jar => {},
 	agent      => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.14)',
 	from       => 'wiki.pl@organicdesign.co.nz',
-	timeout    => 300,
-	max_size   => 1000
+	timeout    => 10,
+	max_size   => 100000
 );
 
 # Do a form post that special-character friendly
