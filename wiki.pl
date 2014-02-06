@@ -22,10 +22,11 @@
 # - Changes login and edit to API in Nov 2013 which will prevent it from working in older MediaWiki versions
 #
 
-$::wikipl_version = '1.16.1'; # 2013-11-15
+$::wikipl_version = '1.17.1'; # 2014-02-06
 
 use HTTP::Request;
 use LWP::UserAgent;
+use Encode;
 use XML::Simple;
 use POSIX qw( strftime );
 use Digest::MD5 qw( md5_hex );
@@ -73,9 +74,22 @@ $::client = LWP::UserAgent->new(
 	cookie_jar => {},
 	agent      => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.14)',
 	from       => 'wiki.pl@organicdesign.co.nz',
-	timeout    => 10,
-	max_size   => 100000
+	timeout    => 300,
+	max_size   => 1000
 );
+
+# Do a form post that special-character friendly
+sub post {
+	my $url = shift;
+	my $data = shift;
+	my @encdata = ();
+	while ( my( $k, $v ) = each %{$data} ) { push @encdata, "$k=" . urlencode($v) };
+	return $::client->post(
+		$url,
+		'Content-type' => "application/x-www-form-urlencoded",
+		'Content'      => join '&', @encdata,
+	);
+}
 
 # Url-encode a wiki title
 sub encodeTitle {
@@ -83,6 +97,12 @@ sub encodeTitle {
 	$url =~ s/ /_/g;
 	$url =~ s/([\W])/ "%" . uc( sprintf( "%2.2x", ord( $1 ) ) ) /eg;
 	return $url;
+}
+
+sub urlencode {
+	my $str = shift;
+	$str =~ s/([^-_A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
+	return $str;
 }
 
 sub logAdd {
@@ -108,16 +128,16 @@ sub wikiLogin {
 	my( $api, $user, $pass, $domain ) = @_;
 	$api =~ s/index/api/;
 	%data = (
-		action => 'login',
-		format => 'xml',
-		lgname => $user,
+		action     => 'login',
+		format     => 'xml',
+		lgname     => $user,
 		lgpassword => $pass
 	);
-	$res = $::client->post( $api, \%data );
+	$res = post $api, \%data;
 	logAdd Dumper($res) unless $res->content;
 	$xml = XMLin( $res->content );
 	$data{lgtoken} = $xml->{'login'}->{'token'};
-	$res = $::client->post( $api, \%data );
+	$res = post $api, \%data;
 	$xml = XMLin( $res->content );
 	if( $xml->{'login'}->{'result'} eq 'Success' ) {
 		$success = 1;
@@ -146,27 +166,26 @@ sub wikiEdit {
 	$api =~ s/index/api/;
 
 	# Get edit token
-	%data = (
+	$res = post $api, {
 		action => 'tokens',
 		format => 'xml',
-		type => 'edit'
-	);
-	$res = $::client->post( $api, \%data );
+		type   => 'edit'
+	};
 	$xml = XMLin( $res->content );
 	$token = $xml->{'tokens'}->{'edittoken'};
 
 	# Do the edit
 	logAdd "Attempting to edit \"$title\" on $api";
-	%data = (
-		action => 'edit',
-		title => $title,
-		token => $token,
-		text => $content,
+	$res = post $api, {
+		action  => 'edit',
+		title   => $title,
+		token   => $token,
+		text    => $content,
 		summary => $comment,
-		minor => $minor ? 1 : 0,
-		format => 'xml',
-	);
-	$res = $::client->post( $api, \%data );
+		minor   => $minor ? 1 : 0,
+		format  => 'xml',
+	};
+
 	$xml = XMLin( $res->content );
 	if( $xml->{'edit'}->{'result'} eq 'Success' ) {
 		$success = 1;
@@ -311,8 +330,7 @@ sub wikiDelete {
 		my $html = '';
 		my $response = $::client->get( $url );
 		if( $response->is_success && $response->content =~ m/<input name=['"]wpEditToken["'].*? value=['"](.*?)["'].*?<\/form>/s ) {
-			my %form = ( wpEditToken => $1, wpReason => $reason );
-			$response = $::client->post( $url, \%form );
+			$response = post $url, { wpEditToken => $1, wpReason => $reason };
 			$html = $response->content;
 			$success = $response->is_success && $html =~ /Action complete/;
 		}
@@ -350,7 +368,7 @@ sub wikiRestore {
 				$form{$timestamps[$revision - 1]} = 1;
 			} else { @form{@timestamps} = (undef) x @timestamps }
 
-			$response = $::client->post( "$url&action=submit", \%form );
+			$response = post "$url&action=submit", \%form;
 			$html     = $response->content;
 			$success  = $response->is_success && $html =~ /has been restored/;
 		}
@@ -447,14 +465,13 @@ sub wikiDeleteFile {
 			}
 			if( $response->is_success &&
 				$response->content =~ m/Delete $imagename.+?<input.+?name=['"]wpEditToken["'].+?value=['"](.*?)["'].+?Reason for deletion:/is ) {
-				%form = (
-					wpEditToken            => $1,
-					wpDeleteReasonList     => "other",
-					wpReason               => $comment || "",
-					'mw-filedelete-submit' => "Delete",
-				);
 				logAdd( "Deleted Image:$imagename" );
-				$response = $::client->post( "$url", \%form );
+				$response = post $url, {
+					'wpEditToken'          => $1,
+					'wpDeleteReasonList'   => "other",
+					'wpReason'             => $comment || "",
+					'mw-filedelete-submit' => "Delete",
+				};
 
 				my $html = $response->content;
 				$success = $response->is_success && $html =~ /Action complete/;
@@ -565,7 +582,7 @@ sub wikiProtect {
 			$form{"mwProtect-level-$_"} = $restrictions->{$_} for keys %{$restrictions};
 			# Allowing for cascade option
 			if( $cascade && $restrictions->{'edit'} == "sysop" ) { $form{"mwProtect-cascade"} = 1 }
-			$response = $::client->post($url, \%form);
+			$response = post $url, \%form;
 			logAdd( "Setting protect article permissions" );
 			logHash( \%form );
 		}
@@ -699,7 +716,7 @@ sub wikiMove {
 				wpReason      => $reason   || "",
 				wpMovetalk    => $movetalk || ""
 			);
-			$response = $::client->post( "$url&action=submit", \%form );
+			$response = post "$url&action=submit", \%form;
 			logAdd( "Moving $oldname to $newname" );
 		}
 	}
@@ -863,7 +880,7 @@ sub wikiParse {
 		$form{wpAutoSummary} = $1 if $response->content =~ m|<input name=['"]wpAutoSummary["'] type=['"]hidden["'] value=['"](.*?)["'] />|;
 
 		# Post the form
-		$response = $::client->post( "$wiki?title=Sandbox&action=submit&useskin=standard", \%form );
+		$response = post "$wiki?title=Sandbox&action=submit&useskin=standard", \%form;
 		$html = $response->content if $response->content =~ m|<div class=["']previewnote["']>|;
 
 		# Extract preview content out of resulting page
@@ -992,13 +1009,12 @@ sub wikiGetHashPath {
 sub wikiGetArticleID {
 	my $api = shift;
 	$api =~ s/index/api/;
-	%data = (
+	$res = post $api, {
 		action => 'query',
 		titles => shift,
 		format => 'xml',
 		prop => 'info'
-	);
-	$res = $::client->post( $api, \%data );
+	};
 	$xml = XMLin( $res->content );
 	return $xml->{'query'}->{'pages'}->{'page'}->{'pageid'};
 }
