@@ -1,7 +1,6 @@
 #!/usr/bin/perl
-#
 # Makes 10 character passwords, parameter if used specifies number of passwords to make
-#
+
 sub rnd { return int(rand()*shift) }
 $a = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 $s = '~!@#$%^&*()-_+={}[]:;/?.,<>|';
