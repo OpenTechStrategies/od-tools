@@ -50,7 +50,7 @@ $daemon   = 'wikid';
 $host     = uc( hostname );
 $name     = hostname;
 $port     = 1729;
-$ver      = '3.19.7'; # 2013-04-17
+$ver      = '3.19.8'; # 2014-07-15
 $log      = "$dir/$daemon.log";
 $wkfile   = "$dir/$daemon.work";
 
@@ -121,7 +121,7 @@ if ( $ARGV[0] eq '--install' ) {
 # Remove the named service and exit
 if ( $ARGV[0] eq '--remove' ) {
 	unlink "/etc/rc$_.d/S99$daemon" for 2..5;
-	unlink "/etc/init.d/$daemon.sh";
+	unlink "/etc/init.d/$daemon";
 	logAdd( "$daemon.sh removed from /etc/init.d" );
 	exit 0;
 }
