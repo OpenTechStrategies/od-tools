@@ -73,6 +73,6 @@ close FH;
 # Update the historical data if any's changed
 if($changed) {
 	open FH, '>', "txchk.hist";
-	print FH "$_ " . $hist{$_} . "\n" for keys %hist;
+	print FH "$_ $hist{$_}\n" for keys %hist;
 	close FH;
 }
