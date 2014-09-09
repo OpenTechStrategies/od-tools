@@ -45,7 +45,7 @@ while(<FH>) {
 		$txd = dollar( $tx * $btc );
 
 		# Compose the message
-		print "You received $tx BTC (\$$txd) to address $addr\n";
+		$msg = "You received $tx BTC (\$$txd) to address $addr";
 
 		# Mail the info
 		$tmp = "/tmp/mail.txt";
@@ -53,8 +53,14 @@ while(<FH>) {
 		print MSG $msg;
 		close MSG;
 		$email =~ s/@/\\@/;
-		#qx( mail -s "Transaction received" $email < $tmp );
+		qx( mail -s "You received $tx BTC" $email < $tmp );
 		qx( rm -f $tmp );
+	}
+
+	# If the balance has got less, update the hist value
+	elsif( $bal < $hist{$addr} ) {
+		$changed = 1;
+		$hist{$addr} = $bal;
 	}
 }
 close FH;
