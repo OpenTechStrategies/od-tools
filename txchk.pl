@@ -1,6 +1,16 @@
 #!/usr/bin/perl
 #
-# A script to be called on crontab to notify users when they receive bitcoin transactions
+# A simple script to be called on crontab to notify users by email when they receive bitcoin transactions
+#
+# It requires a file in the same directory called txchk.conf which has a bitcoin address and email address on each line, e.g.
+# 19BcAkFCok8VRM7kktc4kRhKnr5D51NxJd (Organic Design donations)		donations@organicdesign.co.nz
+#
+# - The friendly name for the bitcoin address is optional
+# - The email address is separated from the bitcoin address information by any number of tabs or spaces
+#
+# Author    : Aran Dunkley (http://www.organicdesign.co.nz/aran)
+# License   : GPL (http://www.gnu.org/copyleft/gpl.html)
+# Donations : 19BcAkFCok8VRM7kktc4kRhKnr5D51NxJd
 #
 use HTTP::Request;
 use LWP::UserAgent;
@@ -80,9 +90,6 @@ if($changed) {
 	print FH "$_ $hist{$_}\n" for keys %hist;
 	close FH;
 }
-
-exit;
-
 
 # Sub to format numbers as 2dp with commas
 sub dollar {
