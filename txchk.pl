@@ -8,6 +8,7 @@ chdir $1 if realpath( $0 ) =~ m|^(.+)/|;
 sub dollar {
 	my $x = (shift) + 0.0001;
 	$x =~ s/^(.+?\...).+/$1/;
+	$x =~ s/(\d)(?=\d\d\d\.)/$1,/;
 	return $x;
 }
 
@@ -48,7 +49,7 @@ while(<FH>) {
 		$txd = dollar( $tx * $btc );
 
 		# Compose the message
-		$msg = "You received $tx BTC (\$$txd) to address $addr\n\nThe current bitcoin price is \$" . dollar($btc);
+		$msg = "You received $tx BTC (\$$txd) to address $addr\n\nThe current bitcoin price is \$" . dollar($btc) . " USD";
 
 		# Mail the info
 		$tmp = "/tmp/mail.txt";
