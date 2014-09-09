@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+#
+# A script to be called on crontab to notify users when they receive bitcoin transactions
+#
 use Cwd qw(realpath);
 chdir $1 if realpath( $0 ) =~ m|^(.+)/|;
 
