@@ -16,7 +16,6 @@ use HTTP::Request;
 use LWP::UserAgent;
 use JSON qw( decode_json );
 use Cwd qw( realpath );
-use Data::Dumper;
 
 # Set up a client for making HTTP requests and don't bother verifying SSL certs
 $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
