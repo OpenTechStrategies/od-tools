@@ -5,8 +5,10 @@
 # It requires a file in the same directory called txchk.conf which has a bitcoin address and email address on each line, e.g.
 # 19BcAkFCok8VRM7kktc4kRhKnr5D51NxJd (Organic Design donations)		donations@organicdesign.co.nz
 #
+# NOTES:
 # - The friendly name for the bitcoin address is optional
 # - The email address is separated from the bitcoin address information by any number of tabs or spaces
+# - Depends on libwww-perl and libjson-perl
 #
 # Author    : Aran Dunkley (http://www.organicdesign.co.nz/aran)
 # License   : GPL (http://www.gnu.org/copyleft/gpl.html)
