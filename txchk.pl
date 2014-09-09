@@ -48,7 +48,7 @@ while(<FH>) {
 		$txd = dollar( $tx * $btc );
 
 		# Compose the message
-		$msg = "You received $tx BTC (\$$txd) to address $addr";
+		$msg = "You received $tx BTC (\$$txd) to address $addr\n\nThe current bitcoin price is $" . dollar($btc);
 
 		# Mail the info
 		$tmp = "/tmp/mail.txt";
