@@ -2,9 +2,12 @@
 #
 # A script to be called on crontab to notify users when they receive bitcoin transactions
 #
-use Cwd qw(realpath);
-chdir $1 if realpath( $0 ) =~ m|^(.+)/|;
 
+# Change to the directory the code's in
+use Cwd qw(realpath);
+chdir $1 if realpath($0) =~ m|^(.+)/|;
+
+# Sub to format numbers as 2dp with commas
 sub dollar {
 	my $x = (shift) + 0.0001;
 	$x =~ s/^(.+?\...).+/$1/;
@@ -48,6 +51,7 @@ while(<FH>) {
 		$tx = $bal - $hist{$addr};
 		$hist{$addr} = $bal;
 		$txd = dollar( $tx * $btc );
+		$tx =~ s/(\d{8})\d+/$1/;		
 
 		# Compose the message
 		$msg = "You received $tx BTC (\$$txd) to address $addr\n\nThe current bitcoin price is \$" . dollar($btc) . " USD";
