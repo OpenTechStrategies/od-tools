@@ -2,9 +2,15 @@
 #
 # A script to be called on crontab to notify users when they receive bitcoin transactions
 #
+use HTTP::Request;
+use LWP::UserAgent;
+use Cwd qw(realpath);
+
+# Set up a client for making HTTP requests and don't bother verifying SSL certs
+$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
+$ua = LWP::UserAgent->new();
 
 # Change to the directory the code's in
-use Cwd qw(realpath);
 chdir $1 if realpath($0) =~ m|^(.+)/|;
 
 # Sub to format numbers as 2dp with commas
@@ -17,7 +23,7 @@ sub dollar {
 }
 
 # Get the current bitcoin price
-$src = qx( wget -qO- http://blockchain.info/ticker );
+$src = $ua->get( "http://blockchain.info/ticker" )->content;
 $btc = $src =~ /USD.+?15m.+?([0-9.]{3,})/ ? $1 : 'ERROR';
 
 # Load the last balance data
@@ -41,7 +47,7 @@ while(<FH>) {
 
 	# Get the current balance of the address
 	$raw = $addr =~ /^(\w+)/ ? $1 : $addr;
-	$bal = qx( wget -qO- https://blockchain.info/q/addressbalance/$raw ) / 100000000;
+	$bal = $ua->get( "https://blockchain.info/q/addressbalance/$raw" )->content / 100000000;
 
 	# If it's more than the last amount, compose a message
 	if( $bal > $hist{$addr} ) {
