@@ -2,7 +2,8 @@
 #
 # A simple script to be called on crontab to notify users by email when they receive bitcoin transactions
 #
-# It requires a file in the same directory called txchk.conf which has a bitcoin address and email address on each line, e.g.
+# It requires a file in the same directory called txchk.conf which has a bitcoin address and email address
+# on each line, for exmaple:
 # 19BcAkFCok8VRM7kktc4kRhKnr5D51NxJd (Organic Design donations)		donations@organicdesign.co.nz
 #
 # NOTES:
