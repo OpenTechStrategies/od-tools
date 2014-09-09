@@ -22,7 +22,7 @@ sub dollar {
 	return $x;
 }
 
-# Get the current bitcoin price
+# Get the current bitcoin price from blockchain.info
 $src = $ua->get( "http://blockchain.info/ticker" )->content;
 $btc = $src =~ /USD.+?15m.+?([0-9.]{3,})/ ? $1 : 'ERROR';
 
@@ -38,41 +38,43 @@ if(-e "txchk.hist") {
 $changed = 0;
 open FH, '<', "txchk.conf";
 while(<FH>) {
-	
-	/^\s*(.+)\s+(\S+)\s*$/;
-	($addr,$email) = ($1,$2);
 
-	# Get the current balance of the address
-	$raw = $addr =~ /^(\w+)/ ? $1 : $addr;
-	$bal = $ua->get( "https://blockchain.info/q/addressbalance/$raw" )->content / 100000000;
+	# Extract the bitcoin and email address from the current line
+	if(/^\s*(.+)\s+(\S+)\s*$/) {
+		($addr,$email) = ($1,$2);
 
-	# If it's more than the last amount, compose a message
-	if( $bal > $hist{$addr} ) {
-		$changed = 1;
+		# Get the current bitcoin balance of the address from blockchain.info
+		$raw = $addr =~ /^(\w+)/ ? $1 : $addr;
+		$bal = $ua->get( "https://blockchain.info/q/addressbalance/$raw" )->content / 100000000;
 
-		# Get the transaction amount
-		$tx = $bal - $hist{$addr};
-		$hist{$addr} = $bal;
-		$txd = dollar( $tx * $btc );
-		$tx =~ s/(\d{8})\d+/$1/;		
+		# If it's more than the last amount, compose a message
+		if( $bal > $hist{$addr} ) {
+			$changed = 1;
 
-		# Compose the message
-		$msg = "You received $tx BTC (\$$txd) to address $addr\n\nThe current bitcoin price is \$" . dollar($btc) . " USD";
+			# Get the transaction amount
+			$tx = $bal - $hist{$addr};
+			$hist{$addr} = $bal;
+			$txd = dollar( $tx * $btc );
+			$tx =~ s/(\d{8})\d+/$1/;		
 
-		# Mail the info
-		$tmp = "/tmp/mail.txt";
-		open MSG,'>', $tmp;
-		print MSG $msg;
-		close MSG;
-		$email =~ s/@/\\@/;
-		qx( mail -s "You received $tx BTC" $email < $tmp );
-		qx( rm -f $tmp );
-	}
+			# Compose the message
+			$msg = "You received $tx BTC (\$$txd) to address $addr\n\nThe current bitcoin price is \$" . dollar($btc) . " USD";
 
-	# If the balance has got less, update the hist value
-	elsif( $bal < $hist{$addr} ) {
-		$changed = 1;
-		$hist{$addr} = $bal;
+			# Mail the info
+			$tmp = "/tmp/mail.txt";
+			open MSG,'>', $tmp;
+			print MSG $msg;
+			close MSG;
+			$email =~ s/@/\\@/;
+			qx( mail -s "You received $tx BTC" $email < $tmp );
+			qx( rm -f $tmp );
+		}
+
+		# If the balance has got less, update the hist value
+		elsif( $bal < $hist{$addr} ) {
+			$changed = 1;
+			$hist{$addr} = $bal;
+		}
 	}
 }
 close FH;
