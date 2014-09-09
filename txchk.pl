@@ -9,6 +9,7 @@
 # NOTES:
 # - The friendly name for the bitcoin address is optional
 # - The email address is separated from the bitcoin address information by any number of tabs or spaces
+# - The 'mail' command must be functional
 # - Depends on libwww-perl and libjson-perl
 #
 # Author    : Aran Dunkley (http://www.organicdesign.co.nz/aran)
@@ -70,7 +71,9 @@ while(<FH>) {
 				$tx =~ s/(\d{8})\d+/$1/;		
 
 				# Compose a message about this transaction
-				$msg = "You received $tx BTC (\$$txd) to address $addr\n\nThe transaction ID is $txid\n\nThe current bitcoin price is \$" . dollar($btc) . " USD";
+				$msg = "You received $tx BTC (\$$txd) to address $addr\n\n";
+				$msg .= "The transaction ID is $txid\n\n";
+				$msg .= "The current bitcoin price is \$" . dollar($btc) . " USD";
 
 				# Send the message to the listed email address
 				$tmp = "/tmp/mail.txt";
