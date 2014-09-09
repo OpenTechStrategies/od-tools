@@ -121,7 +121,7 @@ sub get_tx_list {
 	my $txid = shift;
 	my $stop = 0;
 	my @txs = ();
-	my $info = decode_json( $ua->get( "https://blockchain.info/rawaddr/$addr" )->content );
+	my $info = decode_json( $ua->get( "https://blockchain.info/rawaddr/$addr?limit=10" )->content );
 	for( @{$info->{'txs'}} ) {
 		$stop = 1 if $_->{hash} eq $txid;
 		push @txs, $_->{hash} unless $stop;
