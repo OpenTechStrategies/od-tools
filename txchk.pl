@@ -20,7 +20,7 @@ $btc = $src =~ /USD.+?15m.+?([0-9.]{3,})/ ? $1 : 'ERROR';
 if(-e "txchk.hist") {
 	open FH, '<', "txchk.hist";
 	while(<FH>) {
-		/^(.+)\s+(\S+)$/;
+		/^(.+) (\S+)$/;
 		$hist{$1} = $2;
 	}
 	close FH;
