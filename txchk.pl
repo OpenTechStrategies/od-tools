@@ -36,8 +36,7 @@ while(<FH>) {
 
 	# Get the current balance of the address
 	$raw = $addr =~ /^(\w+)/ ? $1 : $addr;
-	$bal = qx( wget -qO- https://blockchain.info/q/addressbalance/$raw );
-	$bal =~ s/^([1-9])/$1./;
+	$bal = qx( wget -qO- https://blockchain.info/q/addressbalance/$raw ) / 10000000;
 
 	# If it's more than the last amount, compose a message
 	if( $bal > $hist{$addr} ) {
