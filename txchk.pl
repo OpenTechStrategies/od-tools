@@ -115,7 +115,7 @@ sub get_tx_info {
 	return $amt;
 }
 
-# Get all transactions sent to the passed address since the passed txid
+# Get all transactions sent to the passed address (that do not have self as recipient) since the passed txid
 sub get_tx_list {
 	my $addr = shift;
 	my $txid = shift;
@@ -124,7 +124,7 @@ sub get_tx_list {
 	my $info = decode_json( $ua->get( "https://blockchain.info/rawaddr/$addr?limit=10" )->content );
 	for( @{$info->{'txs'}} ) {
 		$stop = 1 if $_->{hash} eq $txid;
-		push @txs, $_->{hash} unless $stop;
+		push @txs, $_->{hash} unless $_->{addr} eq $addr or $stop;
 	}
 	return @txs;
 }
