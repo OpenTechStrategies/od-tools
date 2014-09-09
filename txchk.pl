@@ -31,11 +31,12 @@ $changed = 0;
 open FH, '<', "txchk.conf";
 while(<FH>) {
 	
-	/^\s*(.+)\s+(.+)\s*$/;
+	/^\s*(.+)\s+(\S+)\s*$/;
 	($addr,$email) = ($1,$2);
 
 	# Get the current balance of the address
-	$bal = qx( wget -qO- https://blockchain.info/q/addressbalance/$addr );
+	$raw = $addr =~ /^(\w+)/ ? $1 : $addr;
+	$bal = qx( wget -qO- https://blockchain.info/q/addressbalance/$raw );
 	$bal =~ s/^([1-9])/$1./;
 
 	# If it's more than the last amount, compose a message
