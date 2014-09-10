@@ -110,7 +110,7 @@ sub get_tx_info {
 	my $addr = shift;
 	my $txid = shift;
 	my $amt = 0;
-	my $info = decode_json( $ua->get( "https://blockchain.info/rawtx/$txid" )->content );
+	my $info = get_json( "https://blockchain.info/rawtx/$txid" );
 	for( @{$info->{'out'}} ) { $amt = $_->{value}/100000000 if $_->{addr} eq $addr };
 	return $amt;
 }
@@ -121,10 +121,22 @@ sub get_tx_list {
 	my $txid = shift;
 	my $stop = 0;
 	my @txs = ();
-	my $info = decode_json( $ua->get( "https://blockchain.info/rawaddr/$addr?limit=10" )->content );
-	for( @{$info->{'txs'}} ) {		
+	my $info = get_json( "https://blockchain.info/rawaddr/$addr?limit=10" );
+	for( @{$info->{'txs'}} ) {
 		$stop = 1 if $_->{hash} eq $txid;
 		push @txs, $_->{hash} unless $stop or $_->{inputs}->[0]->{prev_out}->{addr} eq $addr;
 	}
 	return @txs;
+}
+
+# Get JSON from passed URL retrying after a delay if invalid data returned and silently exiting if still unavailable
+sub get_json {
+	my $url = shift;
+	my $json = $ua->get( $url )->content;
+	unless( $json =~ /^\{/ ) {
+		sleep 2;
+		$json = $ua->get( $url )->content;
+		exit unless $json =~ /^\{/;
+	}
+	return decode_json( $json );
 }
