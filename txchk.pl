@@ -129,14 +129,13 @@ sub get_tx_list {
 	return @txs;
 }
 
-# Get JSON from passed URL retrying after a delay if invalid data returned and silently exiting if still unavailable
+# Get JSON data from passed URL retrying after a delay if invalid data returned and silently exiting if still unavailable
 sub get_json {
 	my $url = shift;
-	my $json = $ua->get( $url )->content;
-	unless( $json =~ /^\{/ ) {
+	for( 1 .. 2 ) {
+		my $json = $ua->get( $url )->content;
+		return decode_json( $json ) if $json =~ /^\{/;
 		sleep 2;
-		$json = $ua->get( $url )->content;
-		exit unless $json =~ /^\{/;
 	}
-	return decode_json( $json );
+	exit;
 }
