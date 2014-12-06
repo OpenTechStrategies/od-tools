@@ -22,7 +22,7 @@
 # - Changes login and edit to API in Nov 2013 which will prevent it from working in older MediaWiki versions
 #
 
-$::wikipl_version = '1.17.1'; # 2014-02-06
+$::wikipl_version = '1.17.2'; # 2014-12-06
 
 use HTTP::Request;
 use LWP::UserAgent;
@@ -791,7 +791,7 @@ sub wikiAllPages {
 	my $url = "$wiki?action=query&list=allpages&format=json&apfilterredir=nonredirects&apnamespace=$ns&aplimit=5000";
 	my $json = $::client->get( $url )->content;
 	my @list = $json =~ /"title":"(.+?[^\\])"/g;
-	s/\\(.)/$1/g for @list;
+	s/\\u([0-9a-f]{4})/chr hex $1/eg for @list;
 	return @list;
 }
 
