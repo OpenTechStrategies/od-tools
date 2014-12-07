@@ -22,11 +22,11 @@
 # - Changes login and edit to API in Nov 2013 which will prevent it from working in older MediaWiki versions
 #
 
-$::wikipl_version = '1.17.2'; # 2014-12-06
+$::wikipl_version = '1.17.3'; # 2014-12-07
 
 use HTTP::Request;
 use LWP::UserAgent;
-use Encode;
+use Encode qw( encode );
 use XML::Simple;
 use POSIX qw( strftime );
 use Digest::MD5 qw( md5_hex );
@@ -87,7 +87,7 @@ sub post {
 	return $::client->post(
 		$url,
 		'Content-type' => "application/x-www-form-urlencoded",
-		'Content'      => join '&', @encdata,
+		'Content' => join '&', @encdata,
 	);
 }
 
@@ -108,7 +108,7 @@ sub urlencode {
 sub logAdd {
 	my $entry = shift;
 	if( $::log ) {
-		open LOGH, '>>:utf8', $::log or die "Can't open $::log for writing!";
+		open LOGH, '>>:utf-8', $::log or die "Can't open $::log for writing!";
 		print LOGH localtime() . " : $entry\n";
 		close LOGH;
 	} else { print STDERR "$entry\n" }
@@ -791,7 +791,10 @@ sub wikiAllPages {
 	my $url = "$wiki?action=query&list=allpages&format=json&apfilterredir=nonredirects&apnamespace=$ns&aplimit=5000";
 	my $json = $::client->get( $url )->content;
 	my @list = $json =~ /"title":"(.+?[^\\])"/g;
-	s/\\u([0-9a-f]{4})/chr hex $1/eg for @list;
+	for( @list ) {
+		s/\\u([0-9a-f]{4})/chr hex $1/eg;
+		$_ = encode( 'utf-8', $_ );
+	}
 	return @list;
 }
 
