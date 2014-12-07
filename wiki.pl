@@ -108,7 +108,8 @@ sub urlencode {
 sub logAdd {
 	my $entry = shift;
 	if( $::log ) {
-		open LOGH, '>>:utf8', $::log or die "Can't open $::log for writing!";
+		open LOGH, '>>', $::log or die "Can't open $::log for writing!";
+		binmode LOGH, ':utf-8';
 		print LOGH localtime() . " : $entry\n";
 		close LOGH;
 	} else { print STDERR "$entry\n" }
