@@ -137,6 +137,7 @@ sub wikiLogin {
 	);
 	$res = post $api, \%data;
 	logAdd Dumper($res) unless $res->content;
+logAdd $res->content;
 	$xml = XMLin( $res->content );
 	$data{lgtoken} = $xml->{'login'}->{'token'};
 	$res = post $api, \%data;
