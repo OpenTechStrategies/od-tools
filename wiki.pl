@@ -74,7 +74,7 @@ $::client = LWP::UserAgent->new(
 	from       => 'wiki.pl@organicdesign.co.nz',
 	timeout    => 10,
 	max_size   => 100000,
-	ssl_opts   => { SSL_verify_mode => SSL_VERIFY_NONE }
+	ssl_opts   => { verify_hostname => 0 }
 );
 
 # Do a form post that special-character friendly
