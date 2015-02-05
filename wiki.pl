@@ -24,7 +24,6 @@
 
 $::wikipl_version = '1.17.3'; # 2014-12-07
 
-use LWP::Protocol::https;
 use HTTP::Request;
 use LWP::UserAgent;
 use Encode qw( encode );
@@ -67,16 +66,15 @@ sub wikiPropertyChanges;
 sub wikiGetHashPath;
 sub wikiGetArticleID;
 
-# Don't verify SSL certs since we need to connect to many domains with invalid certs
-$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
-
 # Set up a global client for making HTTP requests as a browser
+use IO::Socket::SSL qw( SSL_VERIFY_NONE );
 $::client = LWP::UserAgent->new(
 	cookie_jar => {},
 	agent      => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.14)',
 	from       => 'wiki.pl@organicdesign.co.nz',
 	timeout    => 10,
-	max_size   => 100000
+	max_size   => 100000,
+	ssl_opts   => { verify_hostname => 0, SSL_verify_mode => SSL_VERIFY_NONE }
 );
 
 # Do a form post that special-character friendly
@@ -137,7 +135,6 @@ sub wikiLogin {
 	);
 	$res = post $api, \%data;
 	logAdd Dumper($res) unless $res->content;
-logAdd $res->content;
 	$xml = XMLin( $res->content );
 	$data{lgtoken} = $xml->{'login'}->{'token'};
 	$res = post $api, \%data;
