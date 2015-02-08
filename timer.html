@@ -1,0 +1,40 @@
+<html>
+	<head>
+		<title>Timer</title>
+		<script type="text/javascript">
+			tickerID = 0;
+			speed = 60000;
+			function ticker() {
+				tickerID = window.setTimeout("ticker()", speed);
+				var t = document.getElementById('time');
+				v = t.innerHTML;
+				if( v > 0 ) {
+					v--;
+					if( v == 0 ) document.getElementById('bell').play();
+					if( v < 10 ) v = '0' + v;
+					t.innerHTML = v;
+				}
+			}
+			function reset(t) {
+				if(tickerID) window.clearTimeout(tickerID);
+				document.getElementById('time').innerHTML = t;
+				tickerID = window.setTimeout("ticker()", speed);
+			}
+		</script>
+		<style type="text/css">
+			body { background-color: black; }
+			#time { width: 100%; text-align: center; margin-top: 120px; font-size: 400px; color: #009; }
+			#buttons { width: 100%; text-align: center; }
+			#buttons button { font-size: 40px; padding: 20px 50px; }
+		</style>
+	</head>
+	<body>
+		<audio id="bell" src="bell4.mp3"></audio>
+		<div id="time">00</div>
+		<div id="buttons">
+			<button onClick="reset(15)">15</button>
+			<button onClick="reset(24)">24</button>
+			<button onClick="reset(30)">30</button>
+		</div>
+	</body>
+</html>
