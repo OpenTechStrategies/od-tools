@@ -19,6 +19,9 @@
 				if(tickerID) window.clearTimeout(tickerID);
 				document.getElementById('time').innerHTML = t;
 				tickerID = window.setTimeout("ticker()", speed);
+				document.getElementById('bell').pause();
+				document.getElementById('bell').fastSeek(1);
+				document.getElementById('bell').play();
 			}
 		</script>
 		<style type="text/css">
@@ -29,7 +32,7 @@
 		</style>
 	</head>
 	<body>
-		<audio id="bell" src="bell4.mp3"></audio>
+		<audio id="bell" src="bell.mp3"></audio>
 		<div id="time">00</div>
 		<div id="buttons">
 			<button onClick="reset(15)">15</button>
