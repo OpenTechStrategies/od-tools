@@ -2,7 +2,24 @@
 <html>
 	<meta charset="UTF-8" />
 	<head>
-		<title>Timer</title>
+		<title>Meditation Timer</title>
+		<style type="text/css">
+			body { background-color: black; }
+			#time { width: 100%; text-align: center; margin-top: 120px; font-size: 400px; color: #009; }
+			#buttons { width: 100%; text-align: center; }
+			#buttons button {
+				background-color: #204;
+				color: #609;
+				font-size: 40px;
+				padding: 20px 50px;
+				margin: 0 10px;
+				border: 1px solid #222;
+				-moz-border-radius: 15px;
+				-webkit-border-radius: 15px;
+				-khtml-border-radius: 15px;
+				border-radius: 15px;
+			}
+		</style>
 		<script type="text/javascript">
 			tickerID = 0;
 			speed = 60000;
@@ -31,12 +48,6 @@
 				document.getElementById('time').innerHTML = '00';
 			}
 		</script>
-		<style type="text/css">
-			body { background-color: black; }
-			#time { width: 100%; text-align: center; margin-top: 120px; font-size: 400px; color: #009; }
-			#buttons { width: 100%; text-align: center; }
-			#buttons button { font-size: 40px; padding: 20px 50px; }
-		</style>
 	</head>
 	<body>
 		<audio id="bell" src="bell.mp3"></audio>
