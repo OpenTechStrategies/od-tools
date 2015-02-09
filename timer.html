@@ -17,13 +17,18 @@
 					t.innerHTML = v;
 				}
 			}
-			function reset(t) {
+			function set(t) {
 				if(tickerID) window.clearTimeout(tickerID);
 				document.getElementById('time').innerHTML = t;
 				tickerID = window.setTimeout("ticker()", speed);
 				document.getElementById('bell').pause();
 				document.getElementById('bell').fastSeek(1);
 				document.getElementById('bell').play();
+			}
+			function reset() {
+				document.getElementById('bell').pause();
+				document.getElementById('bell').fastSeek(1);
+				document.getElementById('time').innerHTML = '00';
 			}
 		</script>
 		<style type="text/css">
@@ -37,10 +42,10 @@
 		<audio id="bell" src="bell.mp3"></audio>
 		<div id="time">00</div>
 		<div id="buttons">
-			<button onClick="reset(15)">15</button>
-			<button onClick="reset(24)">24</button>
-			<button onClick="reset(30)">30</button>
-			<button onClick="document.getElementById('time').innerHTML = '00'">Reset</button>
+			<button onClick="set(15)">15</button>
+			<button onClick="set(24)">24</button>
+			<button onClick="set(30)">30</button>
+			<button onClick="reset()">Reset</button>
 		</div>
 	</body>
 </html>
