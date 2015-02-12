@@ -2,7 +2,7 @@
 <html>
 	<meta charset="UTF-8" />
 	<head>
-		<title>Meditation Timer</title>
+		<title>Meditation panel</title>
 		<style type="text/css">
 			* {
 				cursor: none;
@@ -10,24 +10,34 @@
 			body {
 				background-color: black;
 			}
+			#tabs {
+				position: absolute;
+				top: 20px;
+				left: 20px;
+				width: 100px;
+			}
+			#tabs button {
+				width: 150px;
+				background-color: #102;
+				color: #306;
+				margin: 0 0 15px 0;
+				font-size: 20px;
+				padding: 10px 20px;
+				border-radius: 10px;
+			}
+			#tabs button.selected {
+				color: #609;
+				background-color: #204;
+			}
+			#tab2 img {
+				margin: 60px 0 0 335px;
+			}
 			#time {
 				width: 100%;
 				text-align: center;
 				margin-top: 120px;
 				font-size: 400px;
 				color: #009;
-			}
-			#close {
-				position: absolute;
-				top: 20px;
-				right: 20px;
-			}
-			#close button {
-				font-size: 80px;
-				padding: 10px 30px;
-				margin: 0;
-				background-color: #102;
-				color: #180040;
 			}
 			#buttons {
 				width: 100%;
@@ -41,10 +51,7 @@
 				padding: 20px 50px;
 				margin: 0 10px;
 				border: none;
-				-moz-border-radius: 15px;
-				-webkit-border-radius: 15px;
-				-khtml-border-radius: 15px;
-				border-radius: 15px;
+				border-radius: 20px;
 			}
 		</style>
 		<script type="text/javascript">
@@ -85,20 +92,40 @@
 					else document.webkitCancelFullScreen();
 				}
 			}
+			function tabs(t) {
+				for( var i = 1; i < 10; i++ ) {					
+					var j = document.getElementById('tab'+i);
+					if(j) {
+						j.style.display = 'none';
+						document.getElementById('button'+i).setAttribute('class', '');
+					}
+				}
+				document.getElementById('tab'+t).style.display = '';
+				document.getElementById('button'+t).setAttribute('class', 'selected');
+			}
 		</script>
 	</head>
 	<body>
 		<audio id="bell" src="bell.mp3"></audio>
 		<div id="container">
-			<div id="time">00</div>
-			<div id="close"><button onClick="toggleFullScreen()">ॐ</button></div>
-			<div id="buttons">
-				<button onClick="set(5)">5</button>
-				<button onClick="set(10)">10</button>
-				<button onClick="set(15)">15</button>
-				<button onClick="set(24)">24</button>
-				<button onClick="set(30)">30</button>
-				<button onClick="reset()">Reset</button>
+			<div id="tabs">
+				<button onClick="toggleFullScreen()">Fullscreen</button>
+				<button id="button1" onClick="tabs(1)" class="selected">Timer</button>
+				<button id="button2" onClick="tabs(2)">Refuge</button>
+			</div>
+			<div id="tab1">
+				<div id="time">00</div>
+				<div id="buttons">
+					<button onClick="set(5)">5</button>
+					<button onClick="set(10)">10</button>
+					<button onClick="set(15)">15</button>
+					<button onClick="set(24)">24</button>
+					<button onClick="set(30)">30</button>
+					<button onClick="reset()">Reset</button>
+				</div>
+			</div>
+			<div id="tab2">
+				<img src="refuge.png" />
 			</div>
 		</div>
 	</body>
