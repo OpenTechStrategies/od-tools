@@ -43,7 +43,6 @@ qx( 7za a $tar.7z $tar -p$wgDBpassword );
 qx( chmod 640 $tar.7z );
 qx( rm $sql $tar );
 
-
 # If SCP info was supplied, send the backup off site and remove local files
 if( $scp ) {
 	qx( scp $tar.7z $scp );
