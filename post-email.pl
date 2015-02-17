@@ -3,7 +3,7 @@
 # Reads an email file given as the first arg, extracts the headers and text
 # and posts them to the URL in the second arg
 #
-# Copyright (C) 2008-2010 Aran Dunkley
+# Copyright (C) 2008-2015 Aran Dunkley
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

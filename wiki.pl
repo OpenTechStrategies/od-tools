@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2008-2010 Aran Dunkley, Marcus Davy and others.
+# Copyright (C) 2008-2015 Aran Dunkley, Marcus Davy and others.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

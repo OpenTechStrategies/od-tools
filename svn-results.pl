@@ -2,7 +2,7 @@
 #
 # svn-results.pl - Generate report of number of SVN committers by month
 #
-# Copyright (C) 2008-2010 Aran Dunkley
+# Copyright (C) 2008-2015 Aran Dunkley
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

@@ -1,5 +1,5 @@
 #!/usr/bin/python2.7
-# Copyright (C) 2013 Aran Dunkley
+# Copyright (C) 2013-2015 Aran Dunkley
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
