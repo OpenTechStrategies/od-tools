@@ -63,7 +63,7 @@
 		</style>
 		<script type="text/javascript">
 			tickerID = 0;
-			speed = 60000;
+			speed = 600;
 			last = 0;
 			function ticker() {
 				tickerID = window.setTimeout("ticker()", speed);
@@ -82,16 +82,19 @@
 				}
 			}
 			function set(t) {
+				t += last;
 				last = t;
+				if( t > 90 ) t = 90;
 				if( t < 10 ) t = '0' + t;
 				if(tickerID) window.clearTimeout(tickerID);
-				document.getElementById('time').innerHTML = t;
 				tickerID = window.setTimeout("ticker()", speed);
+				document.getElementById('time').innerHTML = t;
 				document.getElementById('bell').pause();
 				document.getElementById('bell').fastSeek(1);
 				document.getElementById('bell').play();
 			}
 			function reset() {
+				last = 0;
 				document.getElementById('bell').pause();
 				document.getElementById('bell').fastSeek(1);
 				document.getElementById('time').innerHTML = '00';
