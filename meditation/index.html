@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html>
-	<meta charset="UTF-8" />
+<html lang="en">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<head>
 		<title>Meditation panel</title>
 		<style type="text/css">
@@ -48,27 +48,41 @@
 				background-color: #204;
 				color: #609;
 				font-size: 40px;
-				padding: 20px 50px;
+				padding: 20px 40px;
 				margin: 0 10px;
 				border: none;
 				border-radius: 20px;
 			}
+			#repeat {
+				color: #060;
+				font-weight: bold;
+			}
+			#reset {
+				color: #600;
+			}
 		</style>
 		<script type="text/javascript">
 			tickerID = 0;
-			speed = 60000;
+			speed = 600;
+			last = 0;
 			function ticker() {
 				tickerID = window.setTimeout("ticker()", speed);
 				var t = document.getElementById('time');
 				v = t.innerHTML;
 				if( v > 0 ) {
 					v--;
-					if( v == 0 ) document.getElementById('bell').play();
+					if( v == 0 ) {
+						document.getElementById('bell').pause();
+						document.getElementById('bell').fastSeek(1);
+						document.getElementById('bell').play();
+						if( last && document.getElementById('repeat').innerHTML == '↺' ) v = last;
+					}
 					if( v < 10 ) v = '0' + v;
 					t.innerHTML = v;
 				}
 			}
 			function set(t) {
+				last = t;
 				if( t < 10 ) t = '0' + t;
 				if(tickerID) window.clearTimeout(tickerID);
 				document.getElementById('time').innerHTML = t;
@@ -103,6 +117,10 @@
 				document.getElementById('tab'+t).style.display = '';
 				document.getElementById('button'+t).setAttribute('class', 'selected');
 			}
+			function repeat() {
+				var b = document.getElementById('repeat');
+				b.innerHTML = b.innerHTML == '⇤' ? '↺' : '⇤';
+			}
 		</script>
 	</head>
 	<body>
@@ -121,7 +139,8 @@
 					<button onClick="set(15)">15</button>
 					<button onClick="set(24)">24</button>
 					<button onClick="set(30)">30</button>
-					<button onClick="reset()">Reset</button>
+					<button onClick="repeat()" id="repeat">⇤</button>
+					<button onClick="reset()" id="reset">✖</button>
 				</div>
 			</div>
 			<div id="tab2">
