@@ -76,6 +76,7 @@
 						document.getElementById('bell').fastSeek(1);
 						document.getElementById('bell').play();
 						if( last && document.getElementById('repeat').innerHTML == '↺' ) v = last;
+						else last = 0;
 					}
 					if( v < 10 ) v = '0' + v;
 					t.innerHTML = v;
