@@ -1,0 +1,20 @@
+#!/bin/bash
+# see https://wiki.debian.org/HowTo/ChangeHostname
+usage() {
+   echo "usage : $0 <new hostname>"
+   exit 1
+}
+
+[ "$1" ] || usage
+
+old=$(hostname)
+new=$1
+
+for file in \
+   /etc/hostname \
+   /etc/ssh/ssh_host_rsa_key.pub \
+   /etc/ssh/ssh_host_dsa_key.pub \
+   /etc/ssh/ssh_host_ecdsa_key.pub
+do
+   [ -f $file ] && sed -i.old -e "s:$old:$new:g" $file
+done
