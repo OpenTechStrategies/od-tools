@@ -28,7 +28,7 @@ class CodeTidy {
 		'<', '>', '=', '.', '+', '-', '*', '/', '%', '?', ':', '&', '|', '^',
 	);
 
-	function tidy( $code ) {
+	public static function tidy( $code ) {
 		self::$indent = 0;
 
 		// Remove trailing whitespace
