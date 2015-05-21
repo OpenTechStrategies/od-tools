@@ -1,6 +1,8 @@
 <?php
 /**
- * codeTidy cleans up PHP code to conform to the 
+ * codeTidy cleans up PHP code to conform to the MediaWiki coding conventions
+ * - see https://www.mediawiki.org/wiki/Manual:Coding_conventions
+ * - and https://www.mediawiki.org/wiki/Manual:Coding_conventions/PHP
  *
  * @author Aran Dunkley [http://www.organicdesign.co.nz/aran Aran Dunkley]
  * @copyright © 2015 Aran Dunkley
