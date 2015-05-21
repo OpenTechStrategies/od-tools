@@ -57,12 +57,12 @@ class CodeTidy {
 	private static function tidySection( $code ) {
 		self::$indent = 0;
 
+		// Put a newline after braces
+		$code = preg_replace( '%\{(?!\n)%m', "{\n", $code );
+
 		// Move orphan opening braces to previous line
 		$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
 		$code = preg_replace( '%(?<=\S)\s*\{([ \t]*//)%m', ' {$1', $code );
-
-		// Put a newline after braces
-		$code = preg_replace( '%\{%m', "{\n", $code );
 
 		// Clean up brackets
 		$code = preg_replace_callback( '|\([ \t]*(.+?)[ \t]*\)|', function( $m ) {
