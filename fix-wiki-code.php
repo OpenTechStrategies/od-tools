@@ -30,7 +30,6 @@ class FixCode extends Maintenance {
 			}, $text, -1, $count );
 			if( $count > 0 ) $article->doEdit( $text, 'Change source-code blocks to standard format', EDIT_UPDATE );
 			$this->output( 'Fixed "' . $title->getPrefixedText() . "\"\n" );
-			sleep(5);
 		}
 	}
 }
