@@ -87,6 +87,9 @@ class CodeTidy {
 			return preg_match( "|\n|", $m[2] ) ? "<?php\n" . self::tidySection( $m[2] ) . "\n?>" : "<?php$m[2]$m[3]";
 		}, $code );
 
+		// Put all the preserved content back in place
+		self::postprocess( $code );
+
 		// Remove the final delimiter if any
 		$code = preg_replace( '|\s*\?>\s*$|', '', $code );
 
@@ -158,9 +161,6 @@ class CodeTidy {
 
 		// Single space after if, for, while etc
 		$code = preg_replace( '%(?<=\W)(for|if|elseif|while|foreach|switch)\s*\(%', '$1 (', $code );
-
-		// Put all the preserved content back in place
-		self::postprocess( $code );
 
 		// Allow only single empty lines
 		$code = preg_replace( '%\n\n+%', "\n\n", $code );
