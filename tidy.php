@@ -111,12 +111,12 @@ class CodeTidy {
 		// Fix indenting
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
 		$code = preg_replace( '%^(\s*\S+\S*\{)\s*(?!=\/)(\S+.+?$)%', "$1\n$2", $code );
-		$code = preg_replace_callback( "|^(.+?)$|m", function( $m ) {
+		$code = preg_replace_callback( "%^(.+?)$%m", function( $m ) {
 			$i = preg_match( '%(\{|\(|^\s*case.+?:)($|[ \t]*//)%', $m[1] );
 			$o = preg_match( '%^\s*(\}|\)|break;)%', $m[1] );
 			if( $i && $o ) self::$indent--;
 			if( $o && !$i ) self::$indent--;
-			$line = preg_replace( "|^\s*|", self::$indent > 0 ? str_repeat( "\t", self::$indent ) : '', $m[1] );
+			$line = preg_replace( "%^\s*%", self::$indent > 0 ? str_repeat( "\t", self::$indent ) : '', $m[1] );
 			if( $i ) self::$indent++;
 			return $line;
 		}, $code );
@@ -176,34 +176,34 @@ class CodeTidy {
 	private static function preprocess( &$code ) {
 
 		// Remove trailing whitespace
-		$code = preg_replace( '|^(.*?)[ \t]+$|m', '$1', $code );
+		$code = preg_replace( '%^(.*?)[ \t]+$%m', '$1', $code );
 
 		// Make all newlines uniform UNIX style
-		$code = preg_replace( '|\r\n?|', "\n", $code );
+		$code = preg_replace( '%\r\n?%', "\n", $code );
 
 		// Protect all escaped quotes
-		$code = preg_replace( "|\\\\'|", 'q1' . self::$uniq, $code );
-		$code = preg_replace( '|\\\\"|', 'q2' . self::$uniq, $code );
+		$code = preg_replace( "%\\\\'%", 'q1' . self::$uniq, $code );
+		$code = preg_replace( '%\\\\"%', 'q2' . self::$uniq, $code );
 
 		// Protect strings
-		$code = preg_replace_callback( "|'(.+?)'|", function( $m ) {
+		$code = preg_replace_callback( "%'(.+?)'%", function( $m ) {
 			self::$strings1[] = $m[1];
 			return "'s1" . ( count( self::$strings1 ) - 1 ) . self::$uniq . "'";
 		}, $code );
-		$code = preg_replace_callback( '|"(.+?)"|', function( $m ) {
+		$code = preg_replace_callback( '%"(.+?)"%', function( $m ) {
 			self::$strings2[] = $m[1];
 			return "\"s2" . ( count( self::$strings2 ) - 1 ) . self::$uniq . "\"";
 		}, $code );
 
 		// Change old perl-style comments to double-slash
-		$code = preg_replace( '|#(#*)|', '//$1', $code );
+		$code = preg_replace( '%#(#*)%', '//$1', $code );
 
 		// Protect comments
-		$code = preg_replace_callback( '|(?<=/\*)(.+?)(?=\*/)|s', function( $m ) {
+		$code = preg_replace_callback( '%(?<=/\*)(.+?)(?=\*/)%s', function( $m ) {
 			self::$comments1[] = $m[1];
 			return 'c1' . ( count( self::$comments1 ) - 1 ) . self::$uniq;
 		}, $code );
-		$code = preg_replace_callback( '|(?<=//)(.+?)$|m', function( $m ) {
+		$code = preg_replace_callback( '%(?<=//)(.+?)$%m', function( $m ) {
 			self::$comments2[] = $m[1];
 			return 'c2' . ( count( self::$comments2 ) - 1 ) . self::$uniq;
 		}, $code );
@@ -215,24 +215,24 @@ class CodeTidy {
 	private static function postprocess( &$code ) {
 
 		// Put comments back
-		$code = preg_replace_callback( '|c1([0-9]+)' . self::$uniq . '|', function( $m ) {
+		$code = preg_replace_callback( '%c1([0-9]+)' . self::$uniq . '%', function( $m ) {
 			return self::$comments1[$m[1]];
 		}, $code );
-		$code = preg_replace_callback( '|c2([0-9]+)' . self::$uniq . '|', function( $m ) {
+		$code = preg_replace_callback( '%c2([0-9]+)' . self::$uniq . '%', function( $m ) {
 			return self::$comments2[$m[1]];
 		}, $code );
 
 		// Put strings back
-		$code = preg_replace_callback( '|s1([0-9]+)' . self::$uniq . '|', function( $m ) {
+		$code = preg_replace_callback( '%s1([0-9]+)' . self::$uniq . '%', function( $m ) {
 			return self::$strings1[$m[1]];
 		}, $code );
-		$code = preg_replace_callback( '|s2([0-9]+)' . self::$uniq . '|', function( $m ) {
+		$code = preg_replace_callback( '%s2([0-9]+)' . self::$uniq . '%', function( $m ) {
 			return self::$strings2[$m[1]];
 		}, $code );
 
 		// Put escaped quotes back
-		$code = preg_replace( '|q1' . self::$uniq . '|', "\\'", $code );
-		$code = preg_replace( '|q2' . self::$uniq . '|', '\\"', $code );
+		$code = preg_replace( '%q1' . self::$uniq . '%', "\\'", $code );
+		$code = preg_replace( '%q2' . self::$uniq . '%', '\\"', $code );
 	}
 
 }
