@@ -22,11 +22,12 @@ class FixCode extends Maintenance {
 			$title = Title::newFromId( $row->tl_from );
 			$article = new Article ( $title );
 			$text = $article->getContent();
+			$count = 0;
 			$text = preg_replace_callback( '%\{\{code\|\s*<(.+?)>\s*(.+?)\s*</\\1>\s*\}\}%s', function( $m ) {
 				if( $m[1] === 'math' ) return $m[0];
 				$lang = $m[1] === 'pre' ? '' : " lang=\"$m[1]\"";
 				return "<source$lang>\n$m[2]\n</source>";
-			}, $text, null, &$count );
+			}, $text, -1, $count );
 			if( $count > 0 ) $article->doEdit( $text, 'Change source-code blocks to standard format', EDIT_UPDATE );
 			$this->output( 'Fixed "' . $title->getPrefixedText() . "\"\n" );
 		}
