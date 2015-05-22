@@ -24,8 +24,8 @@ class FixCode extends Maintenance {
 			$text = $article->getContent();
 			$text = preg_replace_callback( '%\{\{code\|\s*<(.+?)>\s*(.+?)\s*</\\1>\s*\}\}%s', function( $m ) {
 				if( $m[1] === 'math' ) return $m[0];
-				if( $m[1] === 'pre' ) $m[1] = 'nohighlight';
-				return "<source lang=\"$m[1]\">\n$m[2]\n</source>";
+				$lang = $m[1] === 'pre' ? '' : " lang=\"$m[1]\"";
+				return "<source$lang>\n$m[2]\n</source>";
 			}, $text, null, &$count );
 			if( $count > 0 ) $article->doEdit( $text, 'Change source-code blocks to standard format', EDIT_UPDATE );
 			$this->output( 'Fixed "' . $title->getPrefixedText() . "\"\n" );
