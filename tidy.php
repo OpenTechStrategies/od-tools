@@ -246,6 +246,8 @@ class CodeTidy {
 		for( $i = 0; $i < strlen( $code ); $i++ ) {
 			$chr = $code[$i];
 			switch( $state ) {
+
+				// We're not in any area that needs preserving
 				case '':
 					if( $chr == '#' ) {
 						$newcode .= '//'; // Change old Perl style comments to forward slashes
@@ -262,6 +264,8 @@ class CodeTidy {
 						$id = '';
 					}
 				break;
+
+				// We're withint a single-quote string
 				case "'":
 					if( substr( $content, -1 ) == "'" ) {
 						$newcode .= self::preserve( 's1', $content ) . $chr;
@@ -270,6 +274,8 @@ class CodeTidy {
 						$content .= $chr;
 					}
 				break;
+
+				// We're withint a double-quote string
 				case '"':
 					if( substr( $content, -1 ) == '"' ) {
 						$newcode .= self::preserve( 's2', $content ) . $chr;
@@ -278,6 +284,18 @@ class CodeTidy {
 						$content .= $chr;
 					}
 				break;
+
+				// We're withint a backtick string
+				case '`':
+					if( substr( $content, -1 ) == '`' ) {
+						$newcode .= self::preserve( 's3', $content ) . $chr;
+						$state = $content = '';
+					} else {
+						$content .= $chr;
+					}
+				break;
+
+				// We're within a multiline comment
 				case "/*":
 					if( substr( $content, -2 ) == '*/' ) {
 						$newcode .= self::preserve( 'c1', $content );
@@ -286,6 +304,8 @@ class CodeTidy {
 						$content .= $chr;
 					}
 				break;
+
+				// We're within a single line comment
 				case "//":
 					if( $chr == "\n" ) {
 						$newcode .= self::preserve( 'c2', $content ) . $chr;
@@ -294,6 +314,8 @@ class CodeTidy {
 						$content .= $chr;
 					}
 				break;
+
+				// We're within a Heredoc string
 				case "<<<":
 					if( $id ) {
 						if( $chr == ';' && substr( $content, -strlen( $id ) ) == $id ) {
