@@ -201,8 +201,14 @@ class CodeTidy {
 		$code = preg_replace( '%(?<=\S)\s*\{([ \t]*//)%m', ' {$1', $code );
 
 		self::$break = array();
+
+		// Format else statements
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
+
+		// Don't allow a statement on the same line as a prior opening brace
 		$code = preg_replace( '%^(\s*\S+\S*\{)\s*(?!=\/)(\S+.+?$)%', "$1\n$2", $code );
+
+		// Loop through all lines to do main indent work
 		$code = preg_replace_callback( "%^(.+?)$%m", function( $m ) {
 
 			// Set indent state to true if line ends in open brace or bracket
