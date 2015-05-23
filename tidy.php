@@ -13,15 +13,19 @@
 
 class CodeTidy {
 
-	private static $uniq = 'BAQCmB6Z9txRD8xdE13SusTjBf9kH7n25DX5ZjJ9uXtU';
+	private static $uniq = "\x07";
+	private static $break = array();
 	private static $i;
 	private static $j;
 	private static $opData;
 	private static $indent;
-	private static $strings1 = array();
-	private static $strings2 = array();
-	private static $comments1 = array();
-	private static $comments2 = array();
+
+	private static $strings1 = array();  // Preserved single-quote strings
+	private static $strings2 = array();  // Preserved double-quote strings
+	private static $strings3 = array();  // Preserved backticks
+	private static $comments1 = array(); // Preserved multi-line comments
+	private static $comments2 = array(); // Preserved single-line comments
+	private static $for = array();       // Preserved semicolon syntax in C-style for loops
 
 	// Note, must be ordered from longest to shortest
 	// ( operator, space before, space after ) false means don't touch the space state
@@ -101,6 +105,27 @@ class CodeTidy {
 	 */
 	private static function tidySection( $code ) {
 
+		// Handle braces and indenting 
+		self::indent( $code );
+
+		// Do operator spacing
+		self::operators( $code );
+
+		// Single space after if, for, while etc
+		$code = preg_replace( '%(?<=\W)(for|if|elseif|while|foreach|switch)\s*\(%', '$1 (', $code );
+
+		// Allow only single empty lines
+		$code = preg_replace( '%\n\n+%', "\n\n", $code );
+
+		return $code;
+	}
+
+	/**
+	 * Handle braces and indenting for passed section
+	 * - the indent level (self::$indent) is reset at the start of the whole script not the section
+	 */
+	private static function indent( &$code ) {
+
 		// Put a newline after braces
 		$code = preg_replace( '%\{(?!\n)%m', "{\n", $code );
 
@@ -108,20 +133,34 @@ class CodeTidy {
 		$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
 		$code = preg_replace( '%(?<=\S)\s*\{([ \t]*//)%m', ' {$1', $code );
 
-		// Fix indenting
+		self::$break = array();
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
 		$code = preg_replace( '%^(\s*\S+\S*\{)\s*(?!=\/)(\S+.+?$)%', "$1\n$2", $code );
 		$code = preg_replace_callback( "%^(.+?)$%m", function( $m ) {
-			$i = preg_match( '%(\{|\(|^\s*case.+?:)($|[ \t]*//)%', $m[1] );
-			$o = preg_match( '%^\s*(\}|\)|break;)%', $m[1] );
+			$i = preg_match( '%(\{|\()($|[ \t]*//)%', $m[1] );
+			if( preg_match( '%^\s*case.+?:($|[ \t]*//)%', $m[1] ) ) {
+				self::$break[] = true;
+				$i = true;
+			}
+			if( preg_match( '%^\s*(for|while) %', $m[1] ) ) {
+				self::$break[] = false;
+			}
+			$o = preg_match( '%^\s*(\}|\))%', $m[1] );
+			if( preg_match( '%^\s*break;%', $m[1] ) ) {
+				if( array_pop( self::$break ) ) $o = true;
+			}
 			if( $i && $o ) self::$indent--;
 			if( $o && !$i ) self::$indent--;
 			$line = preg_replace( "%^\s*%", self::$indent > 0 ? str_repeat( "\t", self::$indent ) : '', $m[1] );
 			if( $i ) self::$indent++;
 			return $line;
 		}, $code );
+	}
 
-		// Operator spacing
+	/**
+	 * Spacing around operators
+	 */
+	private static function operators( &$code ) {
 		self::$i = 0;
 		self::$opData = array();
 		foreach( self::$ops as self::$j => $op ) {
@@ -138,7 +177,9 @@ class CodeTidy {
 			$code = preg_replace_callback( "%o($i)" . self::$uniq . '%', function( $m ) {
 				list( $op, $newline, $before, $after, $endline ) = self::$opData[$m[1]];
 				$op = self::$ops[$op];
-				if( $newline && $op[1] !== false ) $before .= "\t"; // Handle multi line statements with operator at start of line
+				if( $newline && $op[1] !== false ) { // Handle multi line statements with operator at start of line
+					if( $op[0] != ')' ) $before .= "\t";
+				}
 				elseif( $op[1] === 0 ) $before = '';
 				elseif( $op[1] ) $before = ' ';
 				if( $op[2] === 0 ) $after = '';
@@ -158,25 +199,17 @@ class CodeTidy {
 			return '( ' . preg_replace( '%\s*,\s*%', ', ', $m[1] ) . ' )';
 		}, $code );
 		$code = preg_replace( '%\([ \t]+\)%', '()', $code );
-
-		// Single space after if, for, while etc
-		$code = preg_replace( '%(?<=\W)(for|if|elseif|while|foreach|switch)\s*\(%', '$1 (', $code );
-
-		// Allow only single empty lines
-		$code = preg_replace( '%\n\n+%', "\n\n", $code );
-
-		return $code;
 	}
 
 	/**
 	 * Format the code into a uniform state ready for processing
-	 * - this is done to the whole file not just the PHP,
+	 * - this is done to the whole file not just the PHP sections,
 	 * - becuase strings and comments may contain symbols that confuse the process
 	 */
 	private static function preprocess( &$code ) {
 
-		// Remove trailing whitespace
-		$code = preg_replace( '%^(.*?)[ \t]+$%m', '$1', $code );
+		// Remove all indenting and trailing whitespace
+		$code = preg_replace( '%^[ \t]*(.*?)[ \t]*$%m', '$1', $code );
 
 		// Make all newlines uniform UNIX style
 		$code = preg_replace( '%\r\n?%', "\n", $code );
@@ -185,27 +218,50 @@ class CodeTidy {
 		$code = preg_replace( "%\\\\'%", 'q1' . self::$uniq, $code );
 		$code = preg_replace( '%\\\\"%', 'q2' . self::$uniq, $code );
 
-		// Protect strings
+		// Preserve single-quote strings
 		$code = preg_replace_callback( "%'(.+?)'%", function( $m ) {
 			self::$strings1[] = $m[1];
 			return "'s1" . ( count( self::$strings1 ) - 1 ) . self::$uniq . "'";
 		}, $code );
+
+		// Preserve double-quote strings
 		$code = preg_replace_callback( '%"(.+?)"%', function( $m ) {
 			self::$strings2[] = $m[1];
 			return "\"s2" . ( count( self::$strings2 ) - 1 ) . self::$uniq . "\"";
 		}, $code );
 
+		// Preserve backticks
+		$code = preg_replace_callback( '%`(.+?)`%', function( $m ) {
+			self::$stringss[] = $m[1];
+			return "`ss" . ( count( self::$strings3 ) - 1 ) . self::$uniq . "`";
+		}, $code );
+
 		// Change old perl-style comments to double-slash
 		$code = preg_replace( '%#(#*)%', '//$1', $code );
 
-		// Protect comments
+		// Preserve multiline comments
 		$code = preg_replace_callback( '%(?<=/\*)(.+?)(?=\*/)%s', function( $m ) {
 			self::$comments1[] = $m[1];
 			return 'c1' . ( count( self::$comments1 ) - 1 ) . self::$uniq;
 		}, $code );
+
+		// Preserve single-line comments
 		$code = preg_replace_callback( '%(?<=//)(.+?)$%m', function( $m ) {
 			self::$comments2[] = $m[1];
 			return 'c2' . ( count( self::$comments2 ) - 1 ) . self::$uniq;
+		}, $code );
+
+		// Change all remaining whitespace to single spaces
+		$code = preg_replace( '%[ \t]+%', ' ', $code );
+
+		// Put all statements on their own line (need to preserve C-style for loops first)
+		$code = preg_replace_callback( '%(\Wfor\s*)\(([^\)]*;[^\)]*)\)%m', function( $m ) {
+			self::$for[] = $m[1];
+			return 'f' . ( count( self::$for ) - 1 ) . self::$uniq;
+		}, $code );
+		$code = preg_replace( '%;(?!\n)%', ";\n", $code );
+		$code = preg_replace_callback( '%f([0-9]+)' . self::$uniq . '%', function( $m ) {
+			return self::$for[$m[1]];
 		}, $code );
 	}
 
@@ -214,20 +270,30 @@ class CodeTidy {
 	 */
 	private static function postprocess( &$code ) {
 
-		// Put comments back
+		// Put multiline comments back
 		$code = preg_replace_callback( '%c1([0-9]+)' . self::$uniq . '%', function( $m ) {
 			return self::$comments1[$m[1]];
 		}, $code );
+		// TODO, indent comments correctly
+
+		// Put single-line comments back
 		$code = preg_replace_callback( '%c2([0-9]+)' . self::$uniq . '%', function( $m ) {
 			return self::$comments2[$m[1]];
 		}, $code );
 
-		// Put strings back
+		// Put single-strings back
 		$code = preg_replace_callback( '%s1([0-9]+)' . self::$uniq . '%', function( $m ) {
 			return self::$strings1[$m[1]];
 		}, $code );
+
+		// Put double-strings back
 		$code = preg_replace_callback( '%s2([0-9]+)' . self::$uniq . '%', function( $m ) {
 			return self::$strings2[$m[1]];
+		}, $code );
+
+		// Put backticks back
+		$code = preg_replace_callback( '%s3([0-9]+)' . self::$uniq . '%', function( $m ) {
+			return self::$strings3[$m[1]];
 		}, $code );
 
 		// Put escaped quotes back
