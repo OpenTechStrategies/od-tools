@@ -193,7 +193,7 @@ class CodeTidy {
 	 */
 	private static function indent( &$code ) {
 
-		// Put a newline after braces
+		// Put a newline after braces that have things after them
 		$code = preg_replace( '%\{(?!\n)%m', "{\n", $code );
 
 		// Move orphan opening braces to previous line
@@ -204,9 +204,6 @@ class CodeTidy {
 
 		// Format else statements
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
-
-		// Don't allow a statement on the same line as a prior opening brace
-		$code = preg_replace( '%^(\s*\S+\S*\{)\s*(?!=\/)(\S+.+?$)%', "$1\n$2", $code );
 
 		// Loop through all lines to do main indent work
 		$code = preg_replace_callback( "%^(.+?)$%m", function( $m ) {
