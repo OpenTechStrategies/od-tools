@@ -204,22 +204,38 @@ class CodeTidy {
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
 		$code = preg_replace( '%^(\s*\S+\S*\{)\s*(?!=\/)(\S+.+?$)%', "$1\n$2", $code );
 		$code = preg_replace_callback( "%^(.+?)$%m", function( $m ) {
+
+			// Set indent state to true if line ends in open brace or bracket
 			$i = preg_match( '%(\{|\()($|[ \t]*//)%', $m[1] );
+
+			// Set indent state to true if line ends in case:
 			if( preg_match( '%^\s*case.+?:($|[ \t]*//)%', $m[1] ) ) {
 				self::$break[] = true;
 				$i = true;
 			}
+
+			// Account for breaks not being associated with last case (needs fixing)
 			if( preg_match( '%^\s*(for|while) %', $m[1] ) ) {
 				self::$break[] = false;
 			}
+
+			// Set outdent state to true if line starts with close brace or bracket
 			$o = preg_match( '%^\s*(\}|\))%', $m[1] );
+
+			// Or a break
 			if( preg_match( '%^\s*break;%', $m[1] ) ) {
 				if( array_pop( self::$break ) ) $o = true;
 			}
-			if( $i && $o ) self::$indent--;
-			if( $o && !$i ) self::$indent--;
+
+			// Outdent depth if outdent state set
+			if( $o ) self::$indent--;
+
+			// Set the indenting of the line to the current depth
 			$line = preg_replace( "%^\s*%", self::$indent > 0 ? str_repeat( "\t", self::$indent ) : '', $m[1] );
+
+			// Indent depth if indent state set
 			if( $i ) self::$indent++;
+
 			return $line;
 		}, $code );
 	}
