@@ -8,25 +8,18 @@
  * @copyright © 2015 Aran Dunkley
  * @licence GNU General Public Licence 2.0 or later
  * 
- * Version 0.1 beta
+ * Version 0.2 beta
  */
 
 class CodeTidy {
 
-	private static $uniq = "\x07";
 	private static $break = array();
-	private static $i;             // General loops in class so they're available to callbacks
-	private static $j;
 	private static $opData;        // Preserved operand data
 	private static $indent;
-
-	private static $s1 = array();  // Preserved single-quote strings
-	private static $s2 = array();  // Preserved double-quote strings
-	private static $s3 = array();  // Preserved backtick strings
-	private static $s4 = array();  // Preserved Heredoc strings
-	private static $c1 = array();  // Preserved multi-line comments
-	private static $c2 = array();  // Preserved single-line comments
-	private static $for = array(); // Preserved semicolon syntax in C-style for loops
+	private static $uniq = "\x07"; // A unique string to use in the replacement for preseving strings and comments
+	private static $p = array();   // preserved string and comment data
+	private static $i;             // General loops in class so they're available to callbacks
+	private static $j;
 
 	// Note, must be ordered from longest to shortest
 	// ( operator, space before, space after ) false means don't touch the space state
@@ -125,13 +118,10 @@ class CodeTidy {
 
 		// Put all statements on their own line (need to preserve C-style for loops first)
 		$code = preg_replace_callback( '%(\Wfor\s*)\(([^\)]*;[^\)]*)\)%m', function( $m ) {
-			self::$for[] = $m[2];
-			return $m[1] . '(f' . ( count( self::$for ) - 1 ) . self::$uniq . ')';
+			return $m[1] . '(' . self::preserve( 'f', $m[2] ) . ')';
 		}, $code );
 		$code = preg_replace( '%;(?!\n)%', ";\n", $code );
-		$code = preg_replace_callback( '%f([0-9]+)' . self::$uniq . '%', function( $m ) {
-			return self::$for[$m[1]];
-		}, $code );
+		self::restore( 'f', $code );
 	}
 
 	/**
@@ -274,8 +264,7 @@ class CodeTidy {
 				break;
 				case "'":
 					if( substr( $content, -1 ) == "'" ) {
-						self::$s1[] = $content;
-						$newcode .= 's1' . ( count( self::$s1 ) - 1 ) . self::$uniq . $chr;
+						$newcode .= self::preserve( 's1', $content ) . $chr;
 						$state = $content = '';
 					} else {
 						$content .= $chr;
@@ -283,8 +272,7 @@ class CodeTidy {
 				break;
 				case '"':
 					if( substr( $content, -1 ) == '"' ) {
-						self::$s2[] = $content;
-						$newcode .= 's2' . ( count( self::$s2 ) - 1 ) . self::$uniq . $chr;
+						$newcode .= self::preserve( 's2', $content ) . $chr;
 						$state = $content = '';
 					} else {
 						$content .= $chr;
@@ -292,8 +280,7 @@ class CodeTidy {
 				break;
 				case "/*":
 					if( substr( $content, -2 ) == '*/' ) {
-						self::$c1[] = $content;
-						$newcode .= 'c1' . ( count( self::$c1 ) - 1 ) . self::$uniq;
+						$newcode .= self::preserve( 'c1', $content );
 						$state = $content = '';
 					} else {
 						$content .= $chr;
@@ -301,8 +288,7 @@ class CodeTidy {
 				break;
 				case "//":
 					if( $chr == "\n" ) {
-						self::$c2[] = $content;
-						$newcode .= 'c2' . ( count( self::$c2 ) - 1 ) . self::$uniq . $chr;
+						$newcode .= self::preserve( 'c2', $content ) . $chr;
 						$state = $content = '';
 					} else {
 						$content .= $chr;
@@ -311,8 +297,7 @@ class CodeTidy {
 				case "<<<":
 					if( $id ) {
 						if( $chr == ';' && substr( $content, -strlen( $id ) ) == $id ) {
-							self::$s4[] = "$id\n$content";
-							$newcode .= 's4' . ( count( self::$s4 ) - 1 ) . self::$uniq . $chr;
+							$newcode .= self::preserve( 's4',"$id\n$content" ) . $chr;
 							$state = $content = '';
 						} else {
 							$content .= $chr;
@@ -343,12 +328,8 @@ class CodeTidy {
 	private static function postprocess( &$code ) {
 
 		// Put all the preserved code back in opposite order it was preserved
-		foreach( array( 'c1', 'c2', 's4', 's3', 's2', 's1' ) as self::$i ) {
-			$code = preg_replace_callback( '%' . self::$i . '([0-9]+)' . self::$uniq . '%', function( $m ) {
-				$i = self::$i;
-				$i = self::$$i;
-				return $i[$m[1]];
-			}, $code );
+		foreach( array( 'c1', 'c2', 's4', 's3', 's2', 's1' ) as $k ) {
+			self::restore( $k, $code );
 		}
 
 		// TODO, indent comments correctly
@@ -359,6 +340,24 @@ class CodeTidy {
 		$code = preg_replace( '%q1' . self::$uniq . '%', '\\\\\\\\', $code );
 	}
 
+	/**
+	 * Preserve the passed content and return a unique string to replace it with
+	 */
+	private static function preserve( $type, $s ) {
+		if( !array_key_exists( $type, self::$p ) ) self::$p[$type] = array();
+		self::$p[$type][] = $s;
+		return $type . ( count( self::$p[$type] ) - 1 ) . self::$uniq;
+	}
+
+	/**
+	 * Restore all the preseved items of the passed type
+	 */
+	private static function restore( $type, &$code ) {
+		self::$i = $type;
+		$code = preg_replace_callback( "%$type([0-9]+)" . self::$uniq . '%', function( $m ) {
+			return self::$p[self::$i][$m[1]];
+		}, $code );
+	}
 }
 
 if( isset( $argv[1] ) ) {
