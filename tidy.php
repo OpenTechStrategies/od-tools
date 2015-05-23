@@ -418,6 +418,8 @@ class CodeTidy {
 	}
 }
 
+// If called from command-line, tidy the specified file
+// TODO: allow glob
 if( isset( $argv[1] ) ) {
 	echo CodeTidy::tidy( file_get_contents( $argv[1] ) );
 }
