@@ -22,7 +22,7 @@ class CodeTidy {
 	private static $j;
 
 	// Note, must be ordered from longest to shortest
-	// ( operator, space before, space after ) false means don't touch the space state
+	// ( operator, spaces before, spaces after ) false means don't touch the space state
 	private static $ops = array(
 		array( '===', 1, 1 ),
 		array( '!==', 1, 1 ),
