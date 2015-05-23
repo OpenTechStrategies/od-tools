@@ -76,7 +76,7 @@ class CodeTidy {
 	 */
 	public static function tidy( $code ) {
 
-		// Cleat indenting state (continues across sections)
+		// Clear indenting state (continues across sections)
 		self::$indent = 0;
 
 		// Format the code into a uniform state ready for processing
@@ -234,6 +234,9 @@ class CodeTidy {
 		// Make all newlines uniform UNIX style
 		$code = preg_replace( '%\r\n?%', "\n", $code );
 
+		// Remove all indenting and trailing whitespace
+		$code = preg_replace( '%^[ \t]*(.*?)[ \t]*$%m', '$1', $code );
+
 		// Preserve escaped quotes and backslashes
 		$code = preg_replace( "%\\\\\\\\%", 'q1' . self::$uniq, $code );
 		$code = preg_replace( "%\\\\'%", 'q2' . self::$uniq, $code );
@@ -298,7 +301,7 @@ class CodeTidy {
 				// We're within a multiline comment
 				case "/*":
 					if( substr( $content, -2 ) == '*/' ) {
-						$newcode .= self::preserve( 'c1', $content );
+						$newcode .= self::preserve( 'c1', $content ) . "\n";
 						$state = $content = '';
 					} else {
 						$content .= $chr;
@@ -354,7 +357,21 @@ class CodeTidy {
 			self::restore( $k, $code );
 		}
 
-		// TODO, indent comments correctly
+		// Modify multiline comment content to match indentint
+		$code = preg_replace_callback( '%^(\t*)(/\*.+?\*/)%sm', function( $m ) {
+			$indent = $m[1];
+			$lines = explode( "\n", $m[2] );
+			if( count( $lines ) < 2 ) return $m[0];
+			$result = $indent . array_shift( $lines );
+			foreach( $lines as $line ) {
+				$line = trim( $line );
+				if( substr( $line, 0, 1 ) == '*' ) {
+					$line = ' ' . $line;
+				}
+				$result .= "\n" . $indent . $line;
+			}
+			return $result;
+		}, $code );
 
 		// Put escaped quotes and backslashes back
 		$code = preg_replace( '%q3' . self::$uniq . '%', '\\"', $code );
