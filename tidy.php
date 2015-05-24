@@ -138,9 +138,9 @@ class CodeTidy {
 	 * - Parse state:
 	 *   0) keyword prior to brackets
 	 *   0.5) whitespace after keyword
-	 *   1) bracketed part
-	 *   2) statement part after brackets
-	 *   3) brace part after brackets
+	 *   1) bracketed part (can be none e.g. else)
+	 *   2) statement part after brackets (can be none if 3)
+	 *   3) brace part after brackets (can be none if 2)
 	 */
 	private static function fixNaked( $loc, &$code ) {
 		$changed = false;
