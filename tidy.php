@@ -494,6 +494,7 @@ class CodeTidy {
 
 	/**
 	 * Preserve the passed content and return a unique string to replace it with
+	 * - $end is set because content includes closing delimeter which is usually a single character
 	 */
 	private static function preserve( $type, $s, $end = 1 ) {
 		if( !array_key_exists( $type, self::$p ) ) self::$p[$type] = array();
