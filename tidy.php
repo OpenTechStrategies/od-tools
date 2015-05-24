@@ -85,7 +85,7 @@ class CodeTidy {
 		// Loop through all PHP sections in the content and tidy each
 		// (but not ones that are a single line since it may mess up HTML formatting)
 		$code = preg_replace_callback( "%<\?(php)?(.+?)(\?>|$)%s", function( $m ) {
-			return preg_match( "%\n%", $m[2] ) ? "<?php\n" . self::tidySection( $m[2] ) . "\n?>" : "<?php$m[2]$m[3]";
+			return preg_match( "%\n%", $m[2] ) ? "<?php\n" . self::tidySection( $m[2] ) . "\n?>" : '<?php ' . trim( $m[2] ) . " $m[3]";
 		}, $code );
 
 		// Allow only single empty lines
@@ -116,12 +116,107 @@ class CodeTidy {
 	 */
 	private static function statements( &$code ) {
 
-		// Put all statements on their own line (need to preserve C-style for loops first)
-		$code = preg_replace_callback( '%(\Wfor\s*)\(([^\)]*;[^\)]*)\)%m', function( $m ) {
-			return $m[1] . '(' . self::preserve( 'f', $m[2] ) . ')';
-		}, $code );
+		// Don't allow naked statements in for, if and else etc
+		// - We fix them from last to first occurrence to handle the possibility of nested naked bracket statements
+		if( preg_match_all( "%(^|;|\))\s*(for(each)?|(else\s*)?if|else)%m", $code, $m, PREG_OFFSET_CAPTURE ) ) {
+			for( $i = count( $m[2] ) - 1; $i >= 0; $i-- ) {
+				self::fixNaked( $m[2][$i][1], $code );
+			}
+		}
+
+		// Put all statements on their own line
 		$code = preg_replace( '%;(?!\n)%', ";\n", $code );
+
+		// Restore the C-style for bracket content that was preserved by the fixNaked function
 		self::restore( 'f', $code );
+	}
+
+	/**
+	 * Put braces around naked statements in for/if/else etc
+	 * - the location of the statement to process is passed
+	 * - this also preserves the content of the C-style for loop brackets so they don't get included in one-statement-per-line process
+	 * - Parse state:
+	 *   0) keyword prior to brackets
+	 *   0.5) whitespace after keyword
+	 *   1) bracketed part
+	 *   2) statement part after brackets
+	 *   3) brace part after brackets
+	 */
+	private static function fixNaked( $loc, &$code ) {
+		$changed = false;
+		$state = 0;
+		$level = 0;
+		$i = $loc;
+		$keyword = '';
+		$brackets = '';
+		$statement = '';
+		$cfor = false;
+		$done = false;
+		while( !$done && $i < strlen( $code ) ) {
+			$chr = $code[$i++];
+			if( $state == 0 ) $keyword .= $chr;
+			elseif( $state == 1 ) $brackets .= $chr;
+			elseif( $state > 1 || $state == 0.5 ) $statement .= $chr;
+			if( !preg_match( '%(\s|\()%', $chr ) && $state == 0.5 ) {
+				$state = 2; // this statement had no bracket section, e.g. else
+			}
+			if( preg_match( '%\s%', $chr ) && $state == 0 ) {
+				$state = 0.5;
+			}
+			if( $chr == '(' && $state < 2 ) {
+				$state = 1;
+				$level++;
+			}
+			elseif( $chr == ')' && $state < 2 ) {
+				$level--;
+				if( $level == 0 ) {
+					$state = 2;
+				}
+			}
+			elseif( $chr == ';' ) {
+				if( $state == 1 ) {
+					$cfor = true;
+				} elseif( $state != 3 ) {
+					$done = true;
+				}
+			}
+			elseif( $chr == '{' ) {
+				$state = 3;
+				$level++;
+			}
+			elseif( $chr == '}' ) {
+				$level--;
+				if( $level == 0 ) {
+					$done = true;
+				}
+			}
+		}
+
+		// If it was a C-style for, preserve the bracket contents
+		if( $cfor ) {
+			$brackets = self::preserve( 'f', $brackets );
+			$changed = true;
+		}
+
+		// If the statement part is naked, surround in braces
+		if( $state < 3 ) {
+			$statement = '{' . "\n$statement\n" . '}' . "\n";
+			$changed = true;
+		}
+
+		// Whole statement
+		$whole = $keyword . $brackets . $statement;
+
+		// If this whole statement is naked within another statement (prior non-whitespace is a closing bracket) wrap in braces
+		if( preg_match( '%\)\s*$%s', substr( $code, 0, $loc - 1 ) ) ) {
+			$whole = '{' . "" . $whole . "" . '}';
+			$changed = true;
+		}
+
+		// If changed, update the code
+		if( $changed ) {
+			$code = substr_replace( $code, $whole, $loc, $i - $loc );
+		}
 	}
 
 	/**
@@ -132,7 +227,6 @@ class CodeTidy {
 		// Single space after if, for, while etc
 		$code = preg_replace( '%(?<=\W)(for|if|elseif|while|foreach|switch)\s*\(%', '$1 (', $code );
 
-		// TODO: don't allow bare statements after for, if, else
 	}
 
 	/**
@@ -194,7 +288,7 @@ class CodeTidy {
 	private static function indent( &$code ) {
 
 		// Put a newline after braces that have things after them
-		$code = preg_replace( '%\{(?!\n)%m', "{\n", $code );
+		$code = preg_replace( '%(\{|\})(?!\n)%m', "$1\n", $code );
 
 		// Move orphan opening braces to previous line
 		$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
@@ -320,7 +414,7 @@ class CodeTidy {
 				// We're within a multiline comment
 				case "/*":
 					if( substr( $content, -2 ) == '*/' ) {
-						$newcode .= self::preserve( 'c1', $content ) . "\n";
+						$newcode .= self::preserve( 'c1', $content, 2 ) . "\n";
 						$state = $content = '';
 					} else {
 						$content .= $chr;
@@ -401,10 +495,10 @@ class CodeTidy {
 	/**
 	 * Preserve the passed content and return a unique string to replace it with
 	 */
-	private static function preserve( $type, $s ) {
+	private static function preserve( $type, $s, $end = 1 ) {
 		if( !array_key_exists( $type, self::$p ) ) self::$p[$type] = array();
-		self::$p[$type][] = $s;
-		return $type . ( count( self::$p[$type] ) - 1 ) . self::$uniq;
+		self::$p[$type][] = substr( $s, 0, strlen( $s ) - $end );
+		return $type . ( count( self::$p[$type] ) - 1 ) . self::$uniq . substr( $s, -$end );
 	}
 
 	/**
