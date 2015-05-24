@@ -8,7 +8,7 @@
  * @copyright © 2015 Aran Dunkley
  * @licence GNU General Public Licence 2.0 or later
  * 
- * Version 0.2 beta
+ * Version 0.5 beta
  */
 
 class CodeTidy {
