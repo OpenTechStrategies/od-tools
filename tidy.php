@@ -116,9 +116,12 @@ class CodeTidy {
 	 */
 	private static function statements( &$code ) {
 
+		// Change all "else if" to "elseif"
+		$code = preg_replace( '%else\s*if%', 'elseif', $code );
+
 		// Don't allow naked statements in for, if and else etc
 		// - We fix them from last to first occurrence to handle the possibility of nested naked bracket statements
-		if( preg_match_all( "%(^|;|\))\s*(for(each)?|(else\s*)?if|else)%m", $code, $m, PREG_OFFSET_CAPTURE ) ) {
+		if( preg_match_all( "%(^|;|\))\s*(for(each)?|(else)?if|else|switch)%m", $code, $m, PREG_OFFSET_CAPTURE ) ) {
 			for( $i = count( $m[2] ) - 1; $i >= 0; $i-- ) {
 				self::fixNaked( $m[2][$i][1], $code );
 			}
@@ -164,6 +167,7 @@ class CodeTidy {
 				$state = 0.5;
 			}
 			if( $chr == '(' && $state < 2 ) {
+				$keyword = preg_replace( '%\($%', ' (', $keyword ); // single space before bracket
 				$state = 1;
 				$level++;
 			}
@@ -225,7 +229,7 @@ class CodeTidy {
 	private static function keywords( &$code ) {
 
 		// Single space after if, for, while etc
-		$code = preg_replace( '%(?<=\W)(for|if|elseif|while|foreach|switch)\s*\(%', '$1 (', $code );
+		//$code = preg_replace( '%(?<=\W)(for|if|else|while|foreach|switch)\s*\(%', '$1 (', $code );
 
 	}
 
