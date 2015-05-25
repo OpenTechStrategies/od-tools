@@ -299,12 +299,8 @@ class CodeTidy {
 		// Fix case colons
 		$code = preg_replace( '%^(\s*case.+?)\s*:%m', '$1:', $code );
 
-		// Clean up brackets
-		/*if( self::$debug ) print "\tTidying brackets\n";
-		$code = preg_replace_callback( '%\([ \t]*(.+?)[ \t]*\)%s', function( $m ) {
-			return '( ' . preg_replace( '%\s*,\s*%', ', ', $m[1] ) . ' )';
-		}, $code );*/
-		$code = preg_replace( '%\([ \t]+\)%', '()', $code );
+		// Special case for empty brackets
+		$code = preg_replace( '%\(\s+\)%', '()', $code );
 	}
 
 	/**
