@@ -466,7 +466,7 @@ class CodeTidy {
 			self::restore( $k, $code );
 		}
 
-		// Modify multiline comment content to match indentint
+		// Modify multiline comment content to match indent
 		$code = preg_replace_callback( '%^(\t*)(/\*.+?\*/)%sm', function( $m ) {
 			$indent = $m[1];
 			$lines = explode( "\n", $m[2] );
