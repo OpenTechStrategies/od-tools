@@ -13,6 +13,8 @@
 
 class CodeTidy {
 
+	public static $debug = false;
+
 	private static $break = array();
 	private static $opData;        // Preserved operand data
 	private static $indent;
@@ -55,6 +57,7 @@ class CodeTidy {
 		array( '>', 1, 1 ),
 		array( '=', 1, 1 ),
 		array( '.', 1, 1 ),
+		array( ',', false, 1 ),
 		array( '+', 1, 1 ),
 		array( '-', 1, 1 ),
 		array( '*', 1, 1 ),
@@ -82,11 +85,30 @@ class CodeTidy {
 		// Format the code into a uniform state ready for processing
 		self::preprocess( $code );
 
-		// Loop through all PHP sections in the content and tidy each
+		// Where are the PHP delimeters?
+		preg_match_all( "%<\?%", $code, $m, PREG_OFFSET_CAPTURE );
+
+		// If there are none, treat it all as PHP and add one at the start
+		if( count( $m[0] ) < 1 ) {
+			self::tidySection( $code );
+			$code = "<?php\n" . $code;
+		}
+
+		// If there is one at the start remove it, process the whole script and re-add it
+		// (saves doing preg_replace_callback on potentially very large files)
+		elseif( count( $m[0] ) == 1 && $m[0][0][1] == 0 ) {
+			$code = preg_replace( '%^<\?(php)?\s*%', '', $code );
+			self::tidySection( $code );
+			$code = "<?php\n" . $code;
+		}
+
+		// If there ate various, loop through all PHP sections in the content and tidy each
 		// (but not ones that are a single line since it may mess up HTML formatting)
-		$code = preg_replace_callback( "%<\?(php)?(.+?)(\?>|$)%s", function( $m ) {
-			return preg_match( "%\n%", $m[2] ) ? "<?php\n" . self::tidySection( $m[2] ) . "\n?>" : '<?php ' . trim( $m[2] ) . " $m[3]";
-		}, $code );
+		else {
+			$code = preg_replace_callback( "%<\?(php)?(.+?)(\?>|$)%s", function( $m ) {
+				return preg_match( "%\n%", $m[2] ) ? "<?php\n" . self::tidySection( $m[2] ) . "\n?>" : '<?php ' . trim( $m[2] ) . " $m[3]";
+			}, $code );
+		}
 
 		// Allow only single empty lines
 		$code = preg_replace( '%\n\n+%', "\n\n", $code );
@@ -103,17 +125,17 @@ class CodeTidy {
 	/**
 	 * Tidy a single PHP section of preprocessed code (without delimeters)
 	 */
-	private static function tidySection( $code ) {
+	private static function tidySection( &$code ) {
 		self::statements( $code );
 		self::indent( $code );
 		self::operators( $code );
-		return $code;
 	}
 
 	/**
 	 * Tidy statements
 	 */
 	private static function statements( &$code ) {
+		if( self::$debug ) print "Tidying statements\n";
 
 		// Change all "else if" to "elseif"
 		$code = preg_replace( '%else\s*if%', 'elseif', $code );
@@ -232,11 +254,13 @@ class CodeTidy {
 	 * Spacing around operators
 	 */
 	private static function operators( &$code ) {
+		if( self::$debug ) print "Fixing operators\n";
 		self::$i = 0;
 		self::$opData = array();
 
 		// First preserve them all storing data about their before and after spacing
 		// - done because e.g. == will match inside an ===
+		if( self::$debug ) print "\tPreserving\n";
 		foreach( self::$ops as self::$j => $op ) {
 			$before = $op[1];
 			$after = $op[2];
@@ -248,7 +272,8 @@ class CodeTidy {
 			}, $code );
 		}
 
-		// Unpreserve them applying the correct spacing
+		// Restore them applying the correct spacing
+		if( self::$debug ) print "\tRestoring\n";
 		foreach( self::$opData as $i => $data ) {
 			$code = preg_replace_callback( "%o($i)" . self::$uniq . '%', function( $m ) {
 				list( $op, $newline, $before, $after, $endline ) = self::$opData[$m[1]];
@@ -265,6 +290,7 @@ class CodeTidy {
 		}
 
 		// Special condition for multiline && and || statements, drop the end bracket and brace to its own line
+		if( self::$debug ) print "\tMultiline && and ||\n";
 		$code = preg_replace( '%^(\t*?)\t((&&|\|\|).*?)\s*(\)\s*\{($|[ \t]*//.*$))%m', "$1\t$2\n$1$4", $code );
 
 		// Hack: Fix double spaces
@@ -274,9 +300,10 @@ class CodeTidy {
 		$code = preg_replace( '%^(\s*case.+?)\s*:%m', '$1:', $code );
 
 		// Clean up brackets
-		$code = preg_replace_callback( '%\([ \t]*(.+?)[ \t]*\)%', function( $m ) {
+		/*if( self::$debug ) print "\tTidying brackets\n";
+		$code = preg_replace_callback( '%\([ \t]*(.+?)[ \t]*\)%s', function( $m ) {
 			return '( ' . preg_replace( '%\s*,\s*%', ', ', $m[1] ) . ' )';
-		}, $code );
+		}, $code );*/
 		$code = preg_replace( '%\([ \t]+\)%', '()', $code );
 	}
 
@@ -285,6 +312,7 @@ class CodeTidy {
 	 * - the indent level (self::$indent) is reset at the start of the whole script not the section
 	 */
 	private static function indent( &$code ) {
+		if( self::$debug ) print "Indenting\n";
 
 		// Put a newline after braces that have things after them
 		$code = preg_replace( '%(\{|\})(?!\n)%m', "$1\n", $code );
@@ -319,12 +347,12 @@ class CodeTidy {
 			$o = preg_match( '%^\s*(\}|\))%', $m[1] );
 
 			// Or a break
-			if( preg_match( '%^\s*break;%', $m[1] ) ) {
+			if( preg_match( '%^\s*break|return%', $m[1] ) ) {
 				if( array_pop( self::$break ) ) $o = true;
 			}
 
 			// Outdent depth if outdent state set
-			if( $o ) self::$indent--;
+			if( $o && self::$indent > 0 ) self::$indent--;
 
 			// Set the indenting of the line to the current depth
 			$line = preg_replace( "%^\s*%", self::$indent > 0 ? str_repeat( "\t", self::$indent ) : '', $m[1] );
@@ -342,6 +370,7 @@ class CodeTidy {
 	 * - becuase strings and comments may contain symbols that confuse the process
 	 */
 	private static function preprocess( &$code ) {
+		if( self::$debug ) print "Preprocessing\n";
 
 		// Make all newlines uniform UNIX style
 		$code = preg_replace( '%\r\n?%', "\n", $code );
@@ -460,6 +489,7 @@ class CodeTidy {
 	 * Put all the preserved content back in place
 	 */
 	private static function postprocess( &$code ) {
+		if( self::$debug ) print "Postprocessing\n";
 
 		// Put all the preserved code back in opposite order it was preserved
 		foreach( array( 'c1', 'c2', 's4', 's3', 's2', 's1' ) as $k ) {
