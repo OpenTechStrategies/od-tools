@@ -317,10 +317,20 @@ class CodeTidy {
 		$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
 		$code = preg_replace( '%(?<=\S)\s*\{([ \t]*//)%m', ' {$1', $code );
 
-		self::$break = array();
-
 		// Format else statements
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
+
+
+		// Do a character parse loop that maintains the level of braces and brackets
+		$state = 0
+		$done = false;
+		while( !$done && $i < strlen( $code ) ) {
+			$chr = $code[$i++];
+		}
+
+
+
+		self::$break = array();
 
 		// Loop through all lines to do main indent work
 		$code = preg_replace_callback( "%^(.+?)$%m", function( $m ) {
