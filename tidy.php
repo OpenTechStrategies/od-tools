@@ -169,7 +169,6 @@ class CodeTidy {
 	 *   4) statement part finished (end or start a new else/elseif chain statement)
 	 */
 	private static function fixNakedStatements( $loc, &$code ) {
-		$changed = false;
 		$state = 0;
 		$level = 0;
 		$i = $loc;
@@ -322,52 +321,68 @@ class CodeTidy {
 
 
 		// Do a character parse loop that maintains the level of braces and brackets
-		$state = 0
+		$state = 0;
+		$indent = 0;
+		$keyword = '';     // Last keyword
+		$ktmp = '';
+		$bracketLevel = 0;
+		$braceLevel = 0;
+		$braceKeyword = array();
 		$done = false;
+		$newcode = '';
 		while( !$done && $i < strlen( $code ) ) {
 			$chr = $code[$i++];
+
+			// In a bracket structure
+			if( $state == 1 ) {
+				if( $chr == '(' ) $bracketLevel++;
+				if( $chr == ')' && --$bracketLevel == 0 ) $state = 0;
+				if( $chr == "\n" ) self::skipWhitespace( $code, $i, $indent );
+			}
+
+			// Not in a bracket structure
+			else {
+
+				// Start a bracket structure
+				if( $chr == '(' ) {
+					$bracketLevel = 1;
+					$state = 1;
+				}
+
+				// If the current character is alpha or underscore then append it to current keyword, else clear keyword ready for next one to start
+				if( preg_match('%[a-z_]%', $chr ) ) $ktmp .= $chr;
+				else {
+					$keyword = $ktmp;
+					$ktmp = '';
+				}
+
+				if( $keyword == 'break' || $keyword == 'return' ) {
+					if $braceKeyword[count($braceKeyword) - 1] == 'case'// $indent-- ;
+				}
+
+				if( $chr == '{' ) {
+					$braceLevel++;
+					self::$indent++;
+					$braceKeyword[] = $keyword;
+				}
+
+				if( $chr == '}' ) {
+					$braceLevel--;
+					self::$indent--;
+					array_pop( $braceKeyword );
+				}
+			}
 		}
+	}
 
-
-
-		self::$break = array();
-
-		// Loop through all lines to do main indent work
-		$code = preg_replace_callback( "%^(.+?)$%m", function( $m ) {
-
-			// Set indent state to true if line ends in open brace or bracket
-			$i = preg_match( '%(\{|\()($|[ \t]*//)%', $m[1] );
-
-			// Set indent state to true if line ends in case:
-			if( preg_match( '%^\s*case.+?:($|[ \t]*//)%', $m[1] ) ) {
-				self::$break[] = true;
-				$i = true;
-			}
-
-			// Account for breaks not being associated with last case (needs fixing)
-			if( preg_match( '%^\s*(for|while) %', $m[1] ) ) {
-				self::$break[] = false;
-			}
-
-			// Set outdent state to true if line starts with close brace or bracket
-			$o = preg_match( '%^\s*(\}|\))%', $m[1] );
-
-			// Or a break
-			if( preg_match( '%^\s*break|return%', $m[1] ) ) {
-				if( array_pop( self::$break ) ) $o = true;
-			}
-
-			// Outdent depth if outdent state set
-			if( $o && self::$indent > 0 ) self::$indent--;
-
-			// Set the indenting of the line to the current depth
-			$line = preg_replace( "%^\s*%", self::$indent > 0 ? str_repeat( "\t", self::$indent ) : '', $m[1] );
-
-			// Indent depth if indent state set
-			if( $i ) self::$indent++;
-
-			return $line;
-		}, $code );
+	/**
+	 * Skip the white space start at location $i in the code, and insert the indenting if any
+	 */
+	private static function skipWhitespace( &$code, $i, $indent ) {
+		$ws = preg_match( '%\s+%', $code, $m, 0, $i );
+		$indent = $indent > 0 ? str_repeat( "\t", $indent ) : '';
+		$code = substr_replace( $code, $indent, $i, strlen( $m[0] ) );
+		
 	}
 
 	/**
