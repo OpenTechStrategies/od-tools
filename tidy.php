@@ -106,7 +106,8 @@ class CodeTidy {
 		// (but not ones that are a single line since it may mess up HTML formatting)
 		else {
 			$code = preg_replace_callback( "%<\?(php)?(.+?)(\?>|$)%s", function( $m ) {
-				return preg_match( "%\n%", $m[2] ) ? "<?php\n" . self::tidySection( $m[2] ) . "\n?>" : '<?php ' . trim( $m[2] ) . " $m[3]";
+				self::tidySection( $m[2] );
+				return preg_match( "%\n%", $m[2] ) ? "<?php\n$m[2]\n?>" : '<?php ' . trim( $m[2] ) . " $m[3]";
 			}, $code );
 		}
 
@@ -126,9 +127,55 @@ class CodeTidy {
 	 * Tidy a single PHP section of preprocessed code (without delimeters)
 	 */
 	private static function tidySection( &$code ) {
+		self::preserveBrackets( $code );
 		self::statements( $code );
 		self::indent( $code );
+		self::restoreBrackets( $code );
 		self::operators( $code );
+	}
+
+	/**
+	 * Preserve the bracket structures
+	 */
+	private static function preserveBrackets( &$code ) {
+		$done = false;
+		$newcode = '';
+		$brackets = '';
+		$level = 0;
+		$state = 0;
+		$i = 0;
+		while( !$done && $i < strlen( $code ) ) {
+			$chr = $code[$i++];
+
+			if( $state == 0 ) $newcode .= $chr;
+			elseif( $state == 1) $brackets .= $chr;
+
+			// Bracket structure starts
+			if( $chr == '(' && $state == 0 ) {
+				$state = 1;
+				$level++;
+			}
+
+			// Bracket structure ends
+			elseif( $chr == ')' && $state == 1 && --$level == 0 ) {
+				$newcode .= self::preserve( 'b', trim ( $brackets ), 1 );
+				$brackets = '';
+				$state = 0;
+			}
+		}
+		$code = $newcode;
+	}
+
+	/**
+	 * Restore bracket structures with matching indenting
+	 */
+	private static function restoreBrackets( &$code ) {
+		$code = preg_replace_callback( "%b([0-9]+)" . self::$uniq . '%', function( $m ) {
+			$o = $m[1][1];
+			// Find the indent level at the line which location $o is in and use that +1 in any newlines in $b
+			$b =  self::$p['b'][$m[1][0]];
+			return $b;
+		}, $code, $m, PREG_OFFSET_CAPTURE );
 	}
 
 	/**
@@ -151,9 +198,6 @@ class CodeTidy {
 
 		// Put all statements on their own line
 		$code = preg_replace( '%;(?!\n)%', ";\n", $code );
-
-		// Restore the C-style for bracket content that was preserved by the fixNakedStatements function
-		self::restore( 'f', $code );
 	}
 
 	/**
@@ -175,7 +219,6 @@ class CodeTidy {
 		$brackets = '';
 		$statement = '';
 		$naked = '';
-		$cfor = false;
 		$done = false;
 		while( !$done && $i < strlen( $code ) ) {
 			$chr = $code[$i++];
@@ -199,7 +242,6 @@ class CodeTidy {
 
 			// Final closing bracket in the bracket structure after keyword found
 			elseif( $chr == ')' && $state < 2 && --$level == 0 ) {
-				if( $cfor ) $brackets = self::preserve( 'f', $brackets );   // If it was a C-style for, preserve the bracket contents
 				$statement .= $brackets;
 				$brackets = '';
 				$state = 2;
@@ -295,8 +337,8 @@ class CodeTidy {
 		// Hack: Fix double spaces
 		$code = preg_replace( '% +%', ' ', $code );
 
-		// Fix case colons
-		$code = preg_replace( '%^(\s*case.+?)\s*:%m', '$1:', $code );
+		// Fix case/default colons
+		$code = preg_replace( '%^\s*(case.+?|default)\s*:%m', '$1:', $code );
 
 		// Special case for empty brackets
 		$code = preg_replace( '%\(\s+\)%', '()', $code );
@@ -319,60 +361,35 @@ class CodeTidy {
 		// Format else statements
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
 
+		// Loop through all lines to do main indent work
+		$code = preg_replace_callback( "%^(.+?)$%m", function( $m ) {
 
-		// Do a character parse loop that maintains the level of braces and brackets
-		$state = 0;
-		$indent = 0;
-		$keyword = '';     // Last keyword
-		$ktmp = '';
-		$bracketLevel = 0;
-		$braceLevel = 0;
-		$braceKeyword = array();
-		$done = false;
-		$newcode = '';
-		while( !$done && $i < strlen( $code ) ) {
-			$chr = $code[$i++];
+			// Set indent state to true if line ends in open brace
+			$i = preg_match( '%\{($|[ \t]*//)%', $m[1] );
 
-			// In a bracket structure
-			if( $state == 1 ) {
-				if( $chr == '(' ) $bracketLevel++;
-				if( $chr == ')' && --$bracketLevel == 0 ) $state = 0;
-				if( $chr == "\n" ) self::skipWhitespace( $code, $i, $indent );
+			// Set indent state to true if line ends in case:
+			if( preg_match( '%^\s*case.+?:($|[ \t]*//)%', $m[1] ) ) {
+				self::$break[] = true;
+				$i = true;
 			}
 
-			// Not in a bracket structure
-			else {
+			// Set outdent state to true if line starts with close brace
+			$o = preg_match( '%^\s*\}%', $m[1] );
 
-				// Start a bracket structure
-				if( $chr == '(' ) {
-					$bracketLevel = 1;
-					$state = 1;
-				}
+			// Outdent depth if outdent state set
+			if( $o && self::$indent > 0 ) self::$indent--;
 
-				// If the current character is alpha or underscore then append it to current keyword, else clear keyword ready for next one to start
-				if( preg_match('%[a-z_]%', $chr ) ) $ktmp .= $chr;
-				else {
-					$keyword = $ktmp;
-					$ktmp = '';
-				}
+			// Set actual indent level one less if line ends in a case or default
+			$n = preg_match( '%^\s*(case.+?|default):($|[ \t]*//)%', $m[1] ) ? self::$indent - 1 : self::$indent;
 
-				if( $keyword == 'break' || $keyword == 'return' ) {
-					if $braceKeyword[count($braceKeyword) - 1] == 'case'// $indent-- ;
-				}
+			// Set the indenting of the line to the current depth
+			$line = preg_replace( "%^\s*%", $n > 0 ? str_repeat( "\t", $n ) : '', $m[1] );
 
-				if( $chr == '{' ) {
-					$braceLevel++;
-					self::$indent++;
-					$braceKeyword[] = $keyword;
-				}
+			// Indent depth if indent state set
+			if( $i ) self::$indent++;
 
-				if( $chr == '}' ) {
-					$braceLevel--;
-					self::$indent--;
-					array_pop( $braceKeyword );
-				}
-			}
-		}
+			return $line;
+		}, $code );
 	}
 
 	/**
@@ -430,7 +447,7 @@ class CodeTidy {
 					}
 				break;
 
-				// We're withint a single-quote string
+				// We're within a single-quote string
 				case "'":
 					if( substr( $content, -1 ) == "'" ) {
 						$newcode .= self::preserve( 's1', $content ) . $chr;
@@ -440,7 +457,7 @@ class CodeTidy {
 					}
 				break;
 
-				// We're withint a double-quote string
+				// We're within a double-quote string
 				case '"':
 					if( substr( $content, -1 ) == '"' ) {
 						$newcode .= self::preserve( 's2', $content ) . $chr;
@@ -450,7 +467,7 @@ class CodeTidy {
 					}
 				break;
 
-				// We're withint a backtick string
+				// We're within a backtick string
 				case '`':
 					if( substr( $content, -1 ) == '`' ) {
 						$newcode .= self::preserve( 's3', $content ) . $chr;
