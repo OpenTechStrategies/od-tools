@@ -127,66 +127,9 @@ class CodeTidy {
 	 * Tidy a single PHP section of preprocessed code (without delimeters)
 	 */
 	private static function tidySection( &$code ) {
-		self::preserveBrackets( $code );
 		self::statements( $code );
 		self::indent( $code );
-		self::restoreBrackets( $code );
 		self::operators( $code );
-	}
-
-	/**
-	 * Preserve the bracket structures
-	 */
-	private static function preserveBrackets( &$code ) {
-		$done = false;
-		$newcode = '';
-		$brackets = '';
-		$level = 0;
-		$state = 0;
-		$i = 0;
-		while( !$done && $i < strlen( $code ) ) {
-			$chr = $code[$i++];
-
-			if( $state == 0 ) $newcode .= $chr;
-			elseif( $state == 1) $brackets .= $chr;
-
-			// Bracket structure starts
-			if( $chr == '(' && $state == 0 ) {
-				$state = 1;
-				$level++;
-			}
-
-			// Bracket structure ends
-			elseif( $chr == ')' && $state == 1 && --$level == 0 ) {
-				$newcode .= self::preserve( 'b', $brackets, 1 );
-				$brackets = '';
-				$state = 0;
-			}
-		}
-		$code = $newcode;
-	}
-
-	/**
-	 * Restore bracket structures with matching indenting
-	 */
-	private static function restoreBrackets( &$code ) {
-print_r(self::$p['b']);
-		// Find all bracket preservation guids and their locations
-		preg_match_all( '%b([0-9]+)' . self::$uniq . '%', $code, $m, PREG_OFFSET_CAPTURE );
-
-		// Replace each one start from the last first so we can use substr_replace without messing up the location pointers of prior matches
-		for( $i = count( $m[0] ) - 1; $i >= 0; $i-- ) {
-			$o = $m[0][$i][1];                // Offset of this guid
-			$l = strlen( $m[0][$i][0] );      // Length of this guid
-			$r = self::$p['b'][$m[1][$i][0]]; // Original content
-print "'$r'\n";
-			// Find the indent level at the line which location $o is in and use that +1 in any newlines in $b
-			preg_match( '%.*^(\t*)%m', substr( $code, 0, $o ), $n );
-			$n = $n[1] . "\t";
-
-			// Replace the guid with the indent-corrected replacement
-			$code = substr_replace( $code, $r, $o, $l );
-		}
 	}
 
 	/**
@@ -361,6 +304,65 @@ print "'$r'\n";
 	 */
 	private static function indent( &$code ) {
 		if( self::$debug ) print "Indenting\n";
+
+
+
+		// Do a character parse loop that maintains the level of braces and brackets
+		$state = 0;
+		$indent = 0;
+		$keyword = '';     // Last keyword
+		$ktmp = '';
+		$bracketLevel = 0;
+		$braceLevel = 0;
+		$braceKeyword = array();
+		$done = false;
+		$newcode = '';
+		while( !$done && $i < strlen( $code ) ) {
+			$chr = $code[$i++];
+
+			// In a bracket structure
+			if( $state == 1 ) {
+				if( $chr == '(' ) $bracketLevel++;
+				if( $chr == ')' && --$bracketLevel == 0 ) $state = 0;
+				if( $chr == "\n" ) self::skipWhitespace( $code, $i, $indent );
+			}
+
+			// Not in a bracket structure
+			else {
+
+				// Start a bracket structure
+				if( $chr == '(' ) {
+					$bracketLevel = 1;
+					$state = 1;
+				}
+
+				// If the current character is alpha or underscore then append it to current keyword, else clear keyword ready for next one to start
+				if( preg_match('%[a-z_]%', $chr ) ) $ktmp .= $chr;
+				else {
+					$keyword = $ktmp;
+					$ktmp = '';
+				}
+
+				if( $keyword == 'break' || $keyword == 'return' ) {
+					if $braceKeyword[count($braceKeyword) - 1] == 'case'// $indent-- ;
+				}
+
+				if( $chr == '{' ) {
+					$braceLevel++;
+					self::$indent++;
+					$braceKeyword[] = $keyword;
+				}
+
+				if( $chr == '}' ) {
+					$braceLevel--;
+					
+					array_pop( $braceKeyword );
+				}
+			}
+
+		}
+
+
 
 		// Put a newline after braces that have things after them
 		$code = preg_replace( '%(\{|\})(?!\n)%m', "$1\n", $code );
