@@ -158,7 +158,7 @@ class CodeTidy {
 
 			// Bracket structure ends
 			elseif( $chr == ')' && $state == 1 && --$level == 0 ) {
-				$newcode .= self::preserve( 'b', trim ( $brackets ), 1 );
+				$newcode .= self::preserve( 'b', $brackets, 1 );
 				$brackets = '';
 				$state = 0;
 			}
@@ -170,12 +170,23 @@ class CodeTidy {
 	 * Restore bracket structures with matching indenting
 	 */
 	private static function restoreBrackets( &$code ) {
-		$code = preg_replace_callback( "%b([0-9]+)" . self::$uniq . '%', function( $m ) {
-			$o = $m[1][1];
+print_r(self::$p['b']);
+		// Find all bracket preservation guids and their locations
+		preg_match_all( '%b([0-9]+)' . self::$uniq . '%', $code, $m, PREG_OFFSET_CAPTURE );
+
+		// Replace each one start from the last first so we can use substr_replace without messing up the location pointers of prior matches
+		for( $i = count( $m[0] ) - 1; $i >= 0; $i-- ) {
+			$o = $m[0][$i][1];                // Offset of this guid
+			$l = strlen( $m[0][$i][0] );      // Length of this guid
+			$r = self::$p['b'][$m[1][$i][0]]; // Original content
+print "'$r'\n";
 			// Find the indent level at the line which location $o is in and use that +1 in any newlines in $b
-			$b =  self::$p['b'][$m[1][0]];
-			return $b;
-		}, $code, $m, PREG_OFFSET_CAPTURE );
+			preg_match( '%.*^(\t*)%m', substr( $code, 0, $o ), $n );
+			$n = $n[1] . "\t";
+
+			// Replace the guid with the indent-corrected replacement
+			$code = substr_replace( $code, $r, $o, $l );
+		}
 	}
 
 	/**
