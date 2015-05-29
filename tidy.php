@@ -261,6 +261,7 @@ class CodeTidy {
 			$after = $op[2];
 			$op = preg_quote( $op[0] );
 			$code = preg_replace_callback( "#(\n?)([ \t]*)$op([ \t]*)(\n?)#", function( $m ) {
+				//if( self::$ops[self::$j][0] == ')' ) print_r($m);
 				self::$i++;
 				self::$opData[self::$i] = array( self::$j, $m[1], $m[2], $m[3], $m[4] );
 				return 'o' . self::$i . self::$uniq;
@@ -273,11 +274,13 @@ class CodeTidy {
 			$code = preg_replace_callback( "%o($i)" . self::$uniq . '%', function( $m ) {
 				list( $op, $newline, $before, $after, $endline ) = self::$opData[$m[1]];
 				$op = self::$ops[$op];
-				if( $newline && $op[1] !== false ) { // Handle multi line statements with operator at start of line
-					if( $op[0] != ')' ) $before .= "\t";
+				if( $newline && $op[1] !== false ) {
+					// Do nothing if multiline expression with operator at start
 				}
 				elseif( $op[1] === 0 ) $before = '';
-				elseif( $op[1] ) $before = ' ';
+				elseif( $op[1] ) {
+					if( !$op[0] == ')' && !preg_match( '%\t%', $before ) ) $before = ' ';
+				}
 				if( $op[2] === 0 ) $after = '';
 				elseif( $op[2] && empty( $endline ) ) $after = ' ';
 				return $newline . $before . $op[0] . $after . $endline;
@@ -292,7 +295,7 @@ class CodeTidy {
 		$code = preg_replace( '% +%', ' ', $code );
 
 		// Fix case/default colons
-		$code = preg_replace( '%^\s*(case.+?|default)\s*:%m', '$1:', $code );
+		$code = preg_replace( '%^(\s*)(case.+?|default)\s*:%m', '$1$2:', $code );
 
 		// Special case for empty brackets
 		$code = preg_replace( '%\(\s+\)%', '()', $code );
@@ -332,11 +335,11 @@ class CodeTidy {
 			if( $state == 1 ) {
 				if( $chr == '(' ) {
 					$bracketLevel++;
-					//self::$indent++;
+					self::$indent++;
 				}
 				elseif( $chr == ')' ) {
 					if( --$bracketLevel == 0 ) $state = 0;
-					//self::$indent--;
+					self::$indent--;
 				}
 			}
 
@@ -352,6 +355,7 @@ class CodeTidy {
 
 				// Start a bracket structure
 				if( $chr == '(' ) {
+					self::$indent++;
 					$bracketLevel = 1;
 					$state = 1;
 				}
@@ -374,8 +378,8 @@ class CodeTidy {
 
 			// Newline, add the line to the new version of the code with indenting
 			if( $chr == "\n" ) {
-				$n = ( self::$indent - $lastIndent > 0 ) ? $lastIndent : self::$indent; // If this line indented, wait until next line else change now
-				if( preg_match( '%^\s*(case|default)[ :]%', $line ) ) $n--; // if case/default subtract 1 from the intented amount
+				$n = ( self::$indent - $lastIndent > 0 ) ? $lastIndent : self::$indent; // K&R: If this line indented, wait until next line else change now
+				if( preg_match( '%^\s*(case |default[ :]|\}.+?\{)%', $line ) ) $n--;    // if case/default or }...{ subtract 1 from the intented amount
 				$newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
 				$newcode .= preg_replace( '%^\s*%', '', $line );
 				$line = '';
