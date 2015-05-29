@@ -366,9 +366,10 @@ class CodeTidy {
 
 			// Newline, add the line to the new version of the code with indenting
 			if( $chr == "\n" ) {
-				$n = ( self::$indent - $lastIndent > 0 ) ? $lastIndent : self::$indent; // K&R: If this line indented, wait until next line else change now
-				if( preg_match( '%^\s*(case |default[ :]|\}.+?\{)%', $line ) ) $n--;    // if case/default or }...{ subtract 1 from the intented amount
-				if( $bracketLevel < $lastBracketLevel && preg_match( '%[^\s\(\);]+%', $line ) ) $n++; // Special case for content with a closing bracket
+				$indentChange = self::$indent - $lastIndent > 0;
+				$n = ( $indentChange ) ? $lastIndent : self::$indent; // K&R: If this line indented, wait until next line else change now
+				if( preg_match( '%^\s*(case |default[ :]|[\)\}].+?[\(\{])%', $line ) ) $n--;    // if case/default or }...{ subtract 1 from the intented amount
+				if( $bracketLevel < $lastBracketLevel && preg_match( '%[^\s\(\);\{\}]+%', $line ) ) $n++; // Special case for content with a closing bracket
 				$line = preg_replace( '%^\t*%', '', $line );
 				if( trim( $line ) ) $newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';   // Only indent if the line is not empty
 				$newcode .= $line;
