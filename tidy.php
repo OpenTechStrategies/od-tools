@@ -320,11 +320,9 @@ class CodeTidy {
 		$line = '';               // The current line
 		$keyword = '';            // Last keyword
 		$ktmp = '';
-		$bracketLevel = 0;
-		//$lastBracketLevel = 0;    // bracketLevel at the end of the last line
 		$braceLevel = 0;
 		$braceKeyword = array();  // Stack of keywords that the braces apply to
-		$indent = self::$indent;
+		$lastIndent = self::$indent;
 		$newcode = '';
 		for( $i = 0; $i < strlen( $code ); $i++ ) {
 			$chr = $code[$i];
@@ -332,16 +330,8 @@ class CodeTidy {
 
 			// In a bracket structure
 			if( $state == 1 ) {
-				if( $chr == "\n" ) {
-					$n = self::$indent + $bracketLevel;
-					//if( $bracketLevel > $lastBracketLevel ) $n++;
-					$newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
-					$newcode .= preg_replace( '%^\s*%', '', $line );
-					$line = '';
-					//$lastBracketLevel = $bracketLevel;
-				}
-				elseif( $chr == '(' ) $bracketLevel++;
-				elseif( $chr == ')' && --$bracketLevel == 0 ) $state = 0;
+				if( $chr == '(' ) $self::indent++;
+				elseif( $chr == ')' && --self::$indent == 0 ) $state = 0;
 			}
 
 			// Not in a bracket structure
@@ -361,13 +351,12 @@ class CodeTidy {
 				}
 
 				elseif( $chr == '{' ) {
-					$indent++;
+					self::$indent++;
 					$braceKeyword[] = $keyword;
 				}
 
 				elseif( $chr == '}' ) {
-					if( --$indent == 0 ) array_pop( $braceKeyword );
-					self::$indent = $indent;
+					if( --self::$indent == 0 ) array_pop( $braceKeyword );
 				}
 
 				// Semicolon, if no newline after it, break the line now
@@ -375,17 +364,18 @@ class CodeTidy {
 					$chr = "\n";
 					$line .= 'x'.$chr;
 				}
-
-				// Newline, add the line to the new version of the code with indenting
-				if( $chr == "\n" ) {
-					$n = self::$indent;
-					if( preg_match( '%^\s*(case|default)[ :]%', $line ) ) $n--; // if case/default subtract 1 from the intented amount
-					$newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
-					$newcode .= preg_replace( '%^\s*%', '', $line );
-					$line = '';
-					self::$indent = $indent;
-				}
 			}
+
+			// Newline, add the line to the new version of the code with indenting
+			if( $chr == "\n" ) {
+				$n = ( self::$indent - $lastIndent ) > 0 ? $lastIndent : self::$indent; // If this line indented, wait until next line else change now
+				if( preg_match( '%^\s*(case|default)[ :]%', $line ) ) $n--; // if case/default subtract 1 from the intented amount
+				$newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
+				$newcode .= preg_replace( '%^\s*%', '', $line );
+				$line = '';
+				$lastIndent = self::$indent;
+			}
+
 		}
 		$code = $newcode;
 	}
