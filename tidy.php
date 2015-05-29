@@ -352,16 +352,17 @@ class CodeTidy {
 					$state = 1;
 				}
 
-				elseif( $chr == '{' ) self::$indent++;
-
-				elseif( $chr == '}' ) --self::$indent;
-
 				// Semicolon, if no newline after it, break the line now
 				elseif( $chr == ';' && !preg_match( '%^[ \t]*(\n|//)%', substr( $code, $i + 1 ) ) ) {
 					$chr = "\n";
 					$line .= $chr;
 				}
 			}
+
+			// This is outside state condition because brackets can contain functions as parameters
+			if( $chr == '{' ) self::$indent++;
+
+			elseif( $chr == '}' ) --self::$indent;
 
 			// Newline, add the line to the new version of the code with indenting
 			if( $chr == "\n" ) {
