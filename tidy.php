@@ -309,8 +309,8 @@ class CodeTidy {
 	private static function indent( &$code ) {
 		if( self::$debug ) print "Indenting\n";
 
-		// Put a newline after braces that have things after them
-		$code = preg_replace( '%(\{|\})(?!\n)%m', "$1\n", $code );
+		// Put a newline after braces that have things after them (unless the first thing's a comma)
+		$code = preg_replace( '%(\{|\})(?![\n,])%m', "$1\n", $code );
 
 		// Move orphan opening braces to previous line
 		$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
@@ -320,14 +320,11 @@ class CodeTidy {
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
 
 		// Do a character parse loop that maintains the level of braces and brackets
-		$state = 0;               // Only two states, 0 = Not in a bracket structure, 1 = in a bracket structure
-		$line = '';               // The current line
-		$keyword = '';            // Last keyword
-		$ktmp = '';
-		$bracketLevel = 0;
-		$lastBracketLevel = 0;
-		$braceKeyword = array();  // Stack of keywords that the braces apply to
-		$lastIndent = self::$indent;
+		$state = 0;                   // Only two states, 0 = Not in a bracket structure, 1 = in a bracket structure
+		$lastIndent = self::$indent;  // So we can tell the change in indent depth within each line
+		$bracketLevel = 0;            // Keep track of bracket level
+		$lastBracketLevel = 0;        // So we can tell the change in bracket depth within each line
+		$line = '';                   // The current line
 		$newcode = '';
 		for( $i = 0; $i < strlen( $code ); $i++ ) {
 			$chr = $code[$i];
@@ -348,13 +345,6 @@ class CodeTidy {
 			// Not in a bracket structure
 			else {
 
-				// If the current character is alpha or underscore then append it to current keyword, else clear keyword ready for next one to start
-				if( preg_match('%[a-z_]%', $chr ) ) $ktmp .= $chr;
-				else {
-					$keyword = $ktmp;
-					$ktmp = '';
-				}
-
 				// Start a bracket structure
 				if( $chr == '(' ) {
 					self::$indent++;
@@ -362,14 +352,9 @@ class CodeTidy {
 					$state = 1;
 				}
 
-				elseif( $chr == '{' ) {
-					self::$indent++;
-					$braceKeyword[] = $keyword;
-				}
+				elseif( $chr == '{' ) self::$indent++;
 
-				elseif( $chr == '}' ) {
-					if( --self::$indent == 0 ) array_pop( $braceKeyword );
-				}
+				elseif( $chr == '}' ) --self::$indent;
 
 				// Semicolon, if no newline after it, break the line now
 				elseif( $chr == ';' && !preg_match( '%^[ \t]*(\n|//)%', substr( $code, $i + 1 ) ) ) {
