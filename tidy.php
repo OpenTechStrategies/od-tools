@@ -320,7 +320,7 @@ class CodeTidy {
 		$line = '';               // The current line
 		$keyword = '';            // Last keyword
 		$ktmp = '';
-		$braceLevel = 0;
+		$bracketLevel = 0;
 		$braceKeyword = array();  // Stack of keywords that the braces apply to
 		$lastIndent = self::$indent;
 		$newcode = '';
@@ -330,8 +330,14 @@ class CodeTidy {
 
 			// In a bracket structure
 			if( $state == 1 ) {
-				if( $chr == '(' ) $self::indent++;
-				elseif( $chr == ')' && --self::$indent == 0 ) $state = 0;
+				if( $chr == '(' ) {
+					$bracketLevel++;
+					//self::$indent++;
+				}
+				elseif( $chr == ')' ) {
+					if( --$bracketLevel == 0 ) $state = 0;
+					//self::$indent--;
+				}
 			}
 
 			// Not in a bracket structure
@@ -360,15 +366,15 @@ class CodeTidy {
 				}
 
 				// Semicolon, if no newline after it, break the line now
-				elseif( $chr == ';' && !preg_match( '%^[ \t]*(\n|//)%', substr( $code, $i+1 ) ) ) {
+				elseif( $chr == ';' && !preg_match( '%^[ \t]*(\n|//)%', substr( $code, $i + 1 ) ) ) {
 					$chr = "\n";
-					$line .= 'x'.$chr;
+					$line .= $chr;
 				}
 			}
 
 			// Newline, add the line to the new version of the code with indenting
 			if( $chr == "\n" ) {
-				$n = ( self::$indent - $lastIndent ) > 0 ? $lastIndent : self::$indent; // If this line indented, wait until next line else change now
+				$n = ( self::$indent - $lastIndent > 0 ) ? $lastIndent : self::$indent; // If this line indented, wait until next line else change now
 				if( preg_match( '%^\s*(case|default)[ :]%', $line ) ) $n--; // if case/default subtract 1 from the intented amount
 				$newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
 				$newcode .= preg_replace( '%^\s*%', '', $line );
