@@ -102,12 +102,13 @@ class CodeTidy {
 			$code = "<?php\n" . $code;
 		}
 
-		// If there ate various, loop through all PHP sections in the content and tidy each
+		// If there are various, loop through all PHP sections in the content and tidy each
 		// (but not ones that are a single line since it may mess up HTML formatting)
 		else {
 			$code = preg_replace_callback( "%<\?(php)?(.+?)(\?>|$)%s", function( $m ) {
+				$singleLine = preg_match( "%\n%", $m[2] );
 				self::tidySection( $m[2] );
-				return preg_match( "%\n%", $m[2] ) ? "<?php\n$m[2]\n?>" : '<?php ' . trim( $m[2] ) . " $m[3]";
+				return $singleLine ? "<?php\n$m[2]\n?>" : '<?php ' . trim( $m[2] ) . " $m[3]";
 			}, $code );
 		}
 
@@ -279,7 +280,7 @@ class CodeTidy {
 				}
 				elseif( $op[1] === 0 ) $before = '';
 				elseif( $op[1] ) {
-					if( !$op[0] == ')' && !preg_match( '%\t%', $before ) ) $before = ' ';
+					if( !$op[0] == ')' && !preg_match( '%\t%', $before ) ) $before = ' '; // Leave closing brackets alone if they have indenting
 				}
 				if( $op[2] === 0 ) $after = '';
 				elseif( $op[2] && empty( $endline ) ) $after = ' ';
@@ -380,8 +381,9 @@ class CodeTidy {
 			if( $chr == "\n" ) {
 				$n = ( self::$indent - $lastIndent > 0 ) ? $lastIndent : self::$indent; // K&R: If this line indented, wait until next line else change now
 				if( preg_match( '%^\s*(case |default[ :]|\}.+?\{)%', $line ) ) $n--;    // if case/default or }...{ subtract 1 from the intented amount
-				$newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
-				$newcode .= preg_replace( '%^\s*%', '', $line );
+				$line = preg_replace( '%^\t*%', '', $line );
+				if( trim( $line ) ) $newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';   // Only indent if the line is not empty
+				$newcode .= $line;
 				$line = '';
 				$lastIndent = self::$indent;
 			}
@@ -400,9 +402,6 @@ class CodeTidy {
 
 		// Make all newlines uniform UNIX style
 		$code = preg_replace( '%\r\n?%', "\n", $code );
-
-		// Remove all indenting and trailing whitespace
-		$code = preg_replace( '%^[ \t]*(.*?)[ \t]*$%m', '$1', $code );
 
 		// Preserve escaped quotes and backslashes
 		$code = preg_replace( "%\\\\\\\\%", 'q1' . self::$uniq, $code );
@@ -506,6 +505,9 @@ class CodeTidy {
 			}
 		}
 		$code = $newcode;
+
+		// Remove all indenting and trailing whitespace
+		$code = preg_replace( '%^[ \t]*(.*?)[ \t]*$%m', '$1', $code );
 
 		// Change all remaining whitespace to single spaces
 		$code = preg_replace( '%[ \t]+%', ' ', $code );
