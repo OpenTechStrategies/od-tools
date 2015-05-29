@@ -325,6 +325,7 @@ class CodeTidy {
 		$keyword = '';            // Last keyword
 		$ktmp = '';
 		$bracketLevel = 0;
+		$lastBracketLevel = 0;
 		$braceKeyword = array();  // Stack of keywords that the braces apply to
 		$lastIndent = self::$indent;
 		$newcode = '';
@@ -381,11 +382,13 @@ class CodeTidy {
 			if( $chr == "\n" ) {
 				$n = ( self::$indent - $lastIndent > 0 ) ? $lastIndent : self::$indent; // K&R: If this line indented, wait until next line else change now
 				if( preg_match( '%^\s*(case |default[ :]|\}.+?\{)%', $line ) ) $n--;    // if case/default or }...{ subtract 1 from the intented amount
+				if( $bracketLevel < $lastBracketLevel && preg_match( '%[^\s\(\);]+%', $line ) ) $n++; // Special case for content with a closing bracket
 				$line = preg_replace( '%^\t*%', '', $line );
 				if( trim( $line ) ) $newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';   // Only indent if the line is not empty
 				$newcode .= $line;
 				$line = '';
 				$lastIndent = self::$indent;
+				$lastBracketLevel = $bracketLevel;
 			}
 
 		}
