@@ -152,9 +152,6 @@ class CodeTidy {
 				self::fixNakedStatements( $m[2][$i][1], $code );
 			}
 		}
-
-		// Put all statements on their own line
-		//$code = preg_replace( '%;(?!\n)%', ";\n", $code );
 	}
 
 	/**
@@ -282,7 +279,7 @@ class CodeTidy {
 				}
 				elseif( $op[1] === 0 ) $before = '';
 				elseif( $op[1] ) {
-					if( !$op[0] == ')' && !preg_match( '%\t%', $before ) ) $before = ' '; // Leave closing brackets alone if they have indenting
+					if( !( $op[0] == ')' && preg_match( '%\t%', $before ) ) ) $before = ' '; // Leave closing brackets alone if they have indenting
 				}
 				if( $op[2] === 0 ) $after = '';
 				elseif( $op[2] && empty( $endline ) ) $after = ' ';
@@ -311,8 +308,11 @@ class CodeTidy {
 	private static function indent( &$code ) {
 		if( self::$debug ) print "Indenting\n";
 
-		// Put a newline after braces that have things after them (unless the first thing's a comma)
+		// Put a newline after braces that have things after them (unless the first thing's a comma or a while)
 		$code = preg_replace( '%(\{|\})(?![\n,])%m', "$1\n", $code );
+
+		// Special case, put whiles with their closing brace
+		$code = preg_replace( '%\}\s*(while.+?;)%', '} $1', $code );
 
 		// Move orphan opening braces to previous line
 		$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
@@ -375,6 +375,8 @@ class CodeTidy {
 
 				// Special case: For content ending in a closing bracket add 1 to indented depth
 				if( $bracketLevel < $lastBracketLevel && preg_match( '%[^\s\(\);\{\}]+%', $line ) ) $n++;
+
+				if( $state == 0 && preg_match( '%^[ \t]*[-&|+*!.,:?]%', $line ) ) $n++;
 
 				// Remove any existing indenting (can be some after separating a line with mutlitple statements)
 				$line = preg_replace( '%^\t*%', '', $line );
