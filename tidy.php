@@ -293,8 +293,9 @@ class CodeTidy {
 		if( self::$debug ) print "\tMultiline && and ||\n";
 		$code = preg_replace( '%^(\t*?)\t((&&|\|\|).*?)\s*(\)\s*\{($|[ \t]*//.*$))%m', "$1\t$2\n$1$4", $code );
 
-		// Hack: Fix double spaces
+		// Hack: Fix double spaces and spaes at start of line
 		$code = preg_replace( '% +%', ' ', $code );
+		$code = preg_replace( '%^(\t*) +%m', '$1', $code );
 
 		// Fix case/default colons
 		$code = preg_replace( '%^(\s*)(case.+?|default)\s*:%m', '$1$2:', $code );
