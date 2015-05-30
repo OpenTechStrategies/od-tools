@@ -34,6 +34,8 @@ class CodeTidy {
 		array( '&&', 1, 1 ),
 		array( '++', 0, 1 ),
 		array( '--', 0, 1 ),
+		array( '++', 0, 1 ),
+		array( '--', 0, 1 ),
 		array( '+=', 1, 1 ),
 		array( '-=', 1, 1 ),
 		array( '*=', 1, 1 ),
@@ -260,7 +262,7 @@ class CodeTidy {
 			$before = $op[1];
 			$after = $op[2];
 			$op = preg_quote( $op[0] );
-			$code = preg_replace_callback( "#(\n?)([ \t]*)$op([ \t]*)(\n?)#", function( $m ) {
+			$code = preg_replace_callback( "#(\n?)([ \t]*)$op([ \t]*)((\n|;|\/\/)?)#", function( $m ) {
 				//if( self::$ops[self::$j][0] == ')' ) print_r($m);
 				self::$i++;
 				self::$opData[self::$i] = array( self::$j, $m[1], $m[2], $m[3], $m[4] );
@@ -299,6 +301,9 @@ class CodeTidy {
 
 		// Special case for empty brackets
 		$code = preg_replace( '%\(\s+\)%', '()', $code );
+
+		// Special case for prior inc/dec
+		$code = preg_replace( '%(\+\+|--) +\$%', '$1$', $code );
 	}
 
 	/**
@@ -376,7 +381,7 @@ class CodeTidy {
 				// Special case: For content ending in a closing bracket add 1 to indented depth
 				if( $bracketLevel < $lastBracketLevel && preg_match( '%[^\s\(\);\{\}]+%', $line ) ) $n++;
 
-				if( $state == 0 && preg_match( '%^[ \t]*[-&|+*!.,:?]%', $line ) ) $n++;
+				if( $state == 0 && preg_match( '%^[ \t]*[-&|+*!.,:?]%', $line ) && !preg_match( '%^[ \t]*(\-|\+\+)%', $line ) ) $n++;
 
 				// Remove any existing indenting (can be some after separating a line with mutlitple statements)
 				$line = preg_replace( '%^\t*%', '', $line );
