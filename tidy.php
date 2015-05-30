@@ -23,8 +23,9 @@ class CodeTidy {
 	private static $i;             // General loops in class so they're available to callbacks
 	private static $j;
 
-	// Note, must be ordered from longest to shortest
 	// ( operator, spaces before, spaces after ) false means don't touch the space state
+	// - must be ordered from longest to shortest
+	// - some of these like //, &$ etc are not operators but still benefit from having their spacing adjusted
 	private static $ops = array(
 		array( '===', 1, 1 ),
 		array( '!==', 1, 1 ),
@@ -361,18 +362,27 @@ class CodeTidy {
 			}
 
 			// This is outside state condition because brackets can contain functions as parameters
-			if( $chr == '{' ) self::$indent++;
-
-			elseif( $chr == '}' ) --self::$indent;
+			if( $chr == '{' ) self::$indent++; elseif( $chr == '}' ) self::$indent--;
 
 			// Newline, add the line to the new version of the code with indenting
 			if( $chr == "\n" ) {
-				$indentChange = self::$indent - $lastIndent > 0;
-				$n = ( $indentChange ) ? $lastIndent : self::$indent; // K&R: If this line indented, wait until next line else change now
-				if( preg_match( '%^\s*(case |default[ :]|[\)\}].+?[\(\{])%', $line ) ) $n--;    // if case/default or }...{ subtract 1 from the intented amount
-				if( $bracketLevel < $lastBracketLevel && preg_match( '%[^\s\(\);\{\}]+%', $line ) ) $n++; // Special case for content with a closing bracket
+
+				// K&R braces: If this line indented, stick with the last line's indenting else use current depth
+				$n = ( self::$indent - $lastIndent > 0 ) ? $lastIndent : self::$indent;
+
+				// Special case: Case/Default or }...{ subtract 1 from the intented depth
+				if( preg_match( '%^\s*(case |default[ :]|[\)\}].+?[\(\{])%', $line ) ) $n--;
+
+				// Special case: For content ending in a closing bracket add 1 to indented depth
+				if( $bracketLevel < $lastBracketLevel && preg_match( '%[^\s\(\);\{\}]+%', $line ) ) $n++;
+
+				// Remove any existing indenting (can be some after separating a line with mutlitple statements)
 				$line = preg_replace( '%^\t*%', '', $line );
-				if( trim( $line ) ) $newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';   // Only indent if the line is not empty
+
+				// Only indent if the line is not empty
+				if( trim( $line ) ) $newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
+
+				// Add the line and prepare to start the next one
 				$newcode .= $line;
 				$line = '';
 				$lastIndent = self::$indent;
