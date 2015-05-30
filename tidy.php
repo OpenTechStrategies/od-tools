@@ -51,6 +51,7 @@ class CodeTidy {
 		array( '//', false, false ),
 		array( '/*', false, false ),
 		array( '*/', false, false ),
+		array( '&$', false, false ),
 		array( '->', 0, 0 ),
 		array( '=>', 1, 1 ),
 		array( '<', 1, 1 ),
