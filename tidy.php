@@ -396,7 +396,7 @@ class CodeTidy {
 				//if( $bracketLevel < $lastBracketLevel && preg_match( '%[^\s\(\);\{\}]+%', $line ) ) $n++;
 
 				// Special case for multi-line statement lines starting with operators
-				if( $state == 0 && preg_match( '%^[ \t]*[-&|.+*!,:?]%', $line ) && !preg_match( '%^[ \t]*(\-\-|\+\+)%', $line ) ) $n++;
+				elseif( $state == 0 && preg_match( '%^[ \t]*[-&|.+*!,:?]%', $line ) && !preg_match( '%^[ \t]*(\-\-|\+\+)%', $line ) ) $n++;
 
 				// Remove any existing indenting (can be some after separating a line with mutlitple statements)
 				$line = preg_replace( '%^\t*%', '', $line );
