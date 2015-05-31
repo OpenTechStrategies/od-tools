@@ -330,6 +330,7 @@ class CodeTidy {
 		// Do a character parse loop that maintains the level of braces and brackets
 		$state = 0;                   // Only two states, 0 = Not in a bracket structure, 1 = in a bracket structure
 		$lastIndent = self::$indent;  // So we can tell the change in indent depth within each line
+		$overshoot = 0;               // Allow indenting only 1 level, remember actual amount if more
 		$bracketLevel = 0;            // Keep track of bracket level
 		$lastBracketLevel = 0;        // So we can tell the change in bracket depth within each line
 		$line = '';                   // The current line
@@ -346,7 +347,7 @@ class CodeTidy {
 				}
 				elseif( $chr == ')' ) {
 					if( --$bracketLevel == 0 ) $state = 0;
-					self::$indent--;
+					$overshoot ? $overshoot-- : self::$indent--;
 				}
 			}
 
@@ -368,13 +369,22 @@ class CodeTidy {
 			}
 
 			// This is outside state condition because brackets can contain functions as parameters
-			if( $chr == '{' ) self::$indent++; elseif( $chr == '}' ) self::$indent--;
+			if( $chr == '{' ) self::$indent++; elseif( $chr == '}' ) $overshoot ? $overshoot-- : self::$indent--;
 
 			// Newline, add the line to the new version of the code with indenting
 			if( $chr == "\n" ) {
 
+				// Difference in indent depth during this line
+				$diff = self::$indent - $lastIndent;
+
+				// We don't want to indent more than one level at once, but have to remember the true depth
+				if( $diff > 1 ) {
+					self::$indent -= ( $diff - 1 );
+					$overshoot = $diff - 1;
+				}
+
 				// K&R braces: If this line indented, stick with the last line's indenting else use current depth
-				$n = ( self::$indent - $lastIndent > 0 ) ? $lastIndent : self::$indent;
+				$n = ( $diff > 0 ) ? $lastIndent : self::$indent;
 
 				// Special case: Case/Default or }...{ subtract 1 from the intented depth
 				if( preg_match( '%^\s*(case |default[ :]|[\)\}].+?[\(\{])%', $line ) ) $n--;
