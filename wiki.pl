@@ -106,6 +106,7 @@ sub urlencode {
 
 sub logAdd {
 	my $entry = shift;
+	$::lastEntry = $entry;
 	if( $::log ) {
 		open LOGH, '>>', $::log or die "Can't open $::log for writing!";
 		binmode LOGH, ':utf-8';
@@ -185,14 +186,21 @@ sub wikiEdit {
 		minor   => $minor ? 1 : 0,
 		format  => 'xml',
 	};
-
-	$xml = XMLin( $res->content );
-	if( $xml->{'edit'}->{'result'} eq 'Success' ) {
-		$success = 1;
-		logAdd "\"$title\" updated.";
+	my $content = $res->content;
+	if( $content =~ /^<\?xml.+<\/api>$/ ) {
+		$xml = XMLin( $content );
+		if( $xml->{'edit'}->{'result'} eq 'Success' ) {
+			$success = 1;
+			logAdd "\"$title\" updated.";
+		} else {
+			$success = 0;
+			logAdd "ERROR: couldn't edit \"$title\" in on \"$api\"! (" . $xml->{'edit'}->{'result'} . ")";
+		}
 	} else {
 		$success = 0;
-		logAdd "ERROR: couldn't edit \"$title\" in on \"$api\"! (" . $xml->{'edit'}->{'result'} . ")";
+		$content =~ s/<[^>]+>//g;
+		$content =~ s/^\s*(.+?)\s*$/$1/;
+		logAdd "Error: PHP returned \"$content\"";
 	}
 	return $success;
 }

@@ -393,7 +393,7 @@ class CodeTidy {
 				if( preg_match( '%^\s*(case |default[ :]|[\)\}].+?[\(\{])%', $line ) ) $n--;
 
 				// Special case: For content ending in a closing bracket add 1 to indented depth (too dodgy)
-				elseif( $bracketLevel < $lastBracketLevel && preg_match( '%^.*?[^\s\(\)\{\};]+.*\);($| *\/\/)%', $line ) ) $n++;
+				elseif( $bracketLevel < $lastBracketLevel && preg_match( '%^.*?[^\s\(\)\{\};]+.*\)[^\(\)\{\}]*;($| *\/\/)%', $line ) ) $n++;
 
 				// Special case for multi-line statement lines starting with operators
 				elseif( $state == 0 && preg_match( '%^[ \t]*[-&|.+*!,:?]%', $line ) && !preg_match( '%^[ \t]*(\-\-|\+\+)%', $line ) ) $n++;
