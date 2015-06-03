@@ -22,7 +22,7 @@
 # - Changes login and edit to API in Nov 2013 which will prevent it from working in older MediaWiki versions
 #
 
-$::wikipl_version = '1.17.3'; # 2014-12-07
+$::wikipl_version = '1.17.4'; # 2015-06-03
 
 use HTTP::Request;
 use LWP::UserAgent;
