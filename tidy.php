@@ -593,5 +593,6 @@ class CodeTidy {
 // If called from command-line, tidy the specified file
 // TODO: allow glob
 if( isset( $argv[1] ) ) {
-	echo CodeTidy::tidy( file_get_contents( $argv[1] ) );
+	$code = CodeTidy::tidy( file_get_contents( $argv[1] ) );
+	if( isset( $argv[2] ) ) file_put_contents( $argv[2], $code ); else echo $code;
 }
