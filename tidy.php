@@ -500,7 +500,7 @@ class CodeTidy {
 				// We're within a single line comment
 				case "//":
 					if( $chr == "\n" ) {
-						$newcode .= self::preserve( 'c2', $content, 0 ) . $chr;
+						$newcode .= self::preserve( 'c2', ' ' . trim( $content ), 0 ) . $chr;
 						$state = $content = '';
 					} else {
 						$content .= $chr;
