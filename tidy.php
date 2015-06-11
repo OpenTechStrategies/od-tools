@@ -13,8 +13,6 @@
 
 class CodeTidy {
 
-	public static $debug = false;
-
 	private static $break = array();
 	private static $opData;        // Preserved operand data
 	private static $indent;
@@ -82,66 +80,29 @@ class CodeTidy {
 	 * Main entry point, tidt the passed PHP file content
 	 */
 	public static function tidy( $code ) {
-
-		// Clear indenting state (continues across sections)
 		self::$indent = 0;
-
-		// Format the code into a uniform state ready for processing
 		self::preprocess( $code );
-
-		// Where are the PHP delimeters?
-		preg_match_all( "%<\?%", $code, $m, PREG_OFFSET_CAPTURE );
-
-		// If there are none, treat it all as PHP and add one at the start
-		if( count( $m[0] ) < 1 ) {
-			self::tidySection( $code );
-			$code = "<?php\n" . $code;
-		}
-
-		// If there is one at the start remove it, process the whole script and re-add it
-		// (saves doing preg_replace_callback on potentially very large files)
-		elseif( count( $m[0] ) == 1 && $m[0][0][1] == 0 ) {
-			$code = preg_replace( '%^<\?(php)?\s*%', '', $code );
-			self::tidySection( $code );
-			$code = "<?php\n" . $code;
-		}
-
-		// If there are various, loop through all PHP sections in the content and tidy each
-		// (but not ones that are a single line since it may mess up HTML formatting)
-		else {
-			$code = preg_replace_callback( "%<\?(php)?(.+?)(\?>|$)%s", function( $m ) {
-				$singleLine = preg_match( "%\n%", $m[2] );
-				self::tidySection( $m[2] );
-				return $singleLine ? "<?php\n$m[2]\n?>" : '<?php ' . trim( $m[2] ) . " $m[3]";
-			}, $code );
-		}
-
-		// Allow only single empty lines
-		$code = preg_replace( '%\n\n+%', "\n\n", $code );
-
-		// Put all the preserved content back in place
 		self::postprocess( $code );
-
-		// Remove the final delimiter if any
-		$code = preg_replace( '|\s*\?>\s*$|', '', $code );
-
 		return $code;
 	}
 
 	/**
 	 * Tidy a single PHP section of preprocessed code (without delimeters)
 	 */
-	private static function tidySection( &$code ) {
+	private static function tidySection( $code ) {
 		self::statements( $code );
 		self::indent( $code );
 		self::operators( $code );
+		return $code;
 	}
 
 	/**
 	 * Tidy statements
 	 */
 	private static function statements( &$code ) {
-		if( self::$debug ) print "Tidying statements\n";
+
+		// Change all whitespace to single spaces
+		$code = preg_replace( '%[ \t]+%', ' ', $code );
 
 		// Change all "else if" to "elseif"
 		$code = preg_replace( '%else\s*if%', 'elseif', $code );
@@ -251,13 +212,11 @@ class CodeTidy {
 	 * Spacing around operators
 	 */
 	private static function operators( &$code ) {
-		if( self::$debug ) print "Fixing operators\n";
 		self::$i = 0;
 		self::$opData = array();
 
 		// First preserve them all storing data about their before and after spacing
 		// - done because e.g. == will match inside an ===
-		if( self::$debug ) print "\tPreserving\n";
 		foreach( self::$ops as self::$j => $op ) {
 			$before = $op[1];
 			$after = $op[2];
@@ -271,7 +230,6 @@ class CodeTidy {
 		}
 
 		// Restore them applying the correct spacing
-		if( self::$debug ) print "\tRestoring\n";
 		foreach( self::$opData as $i => $data ) {
 			$code = preg_replace_callback( "%o($i)" . self::$uniq . '%', function( $m ) {
 				list( $op, $newline, $before, $after, $endline ) = self::$opData[$m[1]];
@@ -290,7 +248,6 @@ class CodeTidy {
 		}
 
 		// Special condition for multiline && and || statements, drop the end bracket and brace to its own line
-		if( self::$debug ) print "\tMultiline && and ||\n";
 		$code = preg_replace( '%^(\t*?)\t((&&|\|\|).*?)\s*(\)\s*\{($|[ \t]*//.*$))%m', "$1\t$2\n$1$4", $code );
 
 		// Hack: Fix double spaces and spaes at start of line
@@ -315,7 +272,9 @@ class CodeTidy {
 	 * - the indent level (self::$indent) is reset at the start of the whole script not the section
 	 */
 	private static function indent( &$code ) {
-		if( self::$debug ) print "Indenting\n";
+
+		// Remove all existing indenting first
+		$code = preg_replace( '%^[ \t]*%m', '', $code );
 
 		// Put a newline after braces that have things after them (unless the first thing's a comma or a while)
 		$code = preg_replace( '%(\{|\})(?![\n,])%m', "$1\n", $code );
@@ -323,7 +282,7 @@ class CodeTidy {
 		// Special case, put whiles with their closing brace
 		$code = preg_replace( '%\}\s*(while.+?;)%', '} $1', $code );
 
-		// Move orphan opening braces to previous line
+		// Move orphan opening braces to previous line - UNLESS ITS A COMMENT LINE
 		$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
 		$code = preg_replace( '%(?<=\S)\s*\{([ \t]*//)%m', ' {$1', $code );
 
@@ -390,20 +349,20 @@ class CodeTidy {
 				$n = ( $diff > 0 ) ? $lastIndent : self::$indent;
 
 				// Special case: Case/Default or }...{ subtract 1 from the intented depth
-				if( preg_match( '%^\s*(case |default[ :]|[\)\}].+?[\(\{])%', $line ) ) $n--;
+				if( preg_match( '%^\s*(case |default[ :]|[\)\}].*?[\(\{])%', $line ) ) {$n--; $line .= 'xxx';}
 
-				// Special case: For content ending in a closing bracket add 1 to indented depth (too dodgy)
+				// Special case: For content ending in a closing bracket add 1 to indented depth (dodgy)
 				elseif( $bracketLevel < $lastBracketLevel && preg_match( '%^.*?[^\s\(\)\{\};]+.*\)[^\(\)\{\}]*;($| *\/\/)%', $line ) ) $n++;
 
 				// Special case for multi-line statement lines starting with operators
-				elseif( $state == 0 && preg_match( '%^[ \t]*[-&|.+*!,:?]%', $line ) && !preg_match( '%^[ \t]*(\-\-|\+\+)%', $line ) ) $n++;
+				//elseif( $state == 0 && preg_match( '%^[ \t]*[-&|.+*!,:?]%', $line ) && !preg_match( '%^[ \t]*(\-\-|\+\+)%', $line ) ) $n++;
 
 				// Remove any existing indenting (can be some after separating a line with mutlitple statements)
 				$line = preg_replace( '%^\t*%', '', $line );
 
 				// Only indent if the line is not empty
 				if( trim( $line ) ) $newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
-
+print self::$indent . '(' . $n . ') ' . $line . "\n";
 				// Add the line and prepare to start the next one
 				$newcode .= $line;
 				$line = '';
@@ -421,10 +380,9 @@ class CodeTidy {
 	 * - becuase strings and comments may contain symbols that confuse the process
 	 */
 	private static function preprocess( &$code ) {
-		if( self::$debug ) print "Preprocessing\n";
 
-		// Make all newlines uniform UNIX style
-		$code = preg_replace( '%\r\n?%', "\n", $code );
+		// Make all newlines uniform UNIX style and remove all trailing whitespace
+		$code = preg_replace( '%[ \t]*(\r\n|\r|\n)%', "\n", trim( $code ) );
 
 		// Preserve escaped quotes and backslashes
 		$code = preg_replace( "%\\\\\\\\%", 'q1' . self::$uniq, $code );
@@ -432,115 +390,128 @@ class CodeTidy {
 		$code = preg_replace( '%\\\\"%', 'q3' . self::$uniq, $code );
 
 		// Scan the code chr-by-chr to preserve strings and comments since they can contain one-another's syntaxes
-		$state = '';
-		$content = '';
+		$state = 'html';
+		$string = '';
 		$newcode = '';
+		$php = '';
 		for( $i = 0; $i < strlen( $code ); $i++ ) {
+			$end = ( $i == strlen( $code ) - 1 );
 			$chr = $code[$i];
 			switch( $state ) {
 
-				// We're not in any area that needs preserving
+				// We're within an HTML section
+				case "html":
+					$newcode .= $chr;
+					if( substr( $newcode, -2 ) == '<?' ) $state = '';
+				break;
+
+				// We're in PHP but not within anything specific
 				case '':
 					if( $chr == '#' ) {
-						$newcode .= '//'; // Change old Perl style comments to forward slashes
+						$php .= '//'; // Change old Perl style comments to forward slashes
 					} else {
-						$newcode .= $chr;
+						$php .= $chr;
 					}
-					if( substr( $newcode, -1 ) == "'" ) $state = "'";
-					if( substr( $newcode, -1 ) == "`" ) $state = "`";
-					if( substr( $newcode, -1 ) == '"' ) $state = '"';
-					if( substr( $newcode, -2 ) == '//' ) $state = '//';
-					if( substr( $newcode, -2 ) == '/*' ) $state = '/*';
-					if( substr( $newcode, -3 ) == '<<<' ) {
+
+					if( substr( $php, -1 ) == "'" )  $state = "'";
+					if( substr( $php, -1 ) == '"' )  $state = '"';
+					if( substr( $php, -1 ) == "`" )  $state = "`";
+					if( substr( $php, -2 ) == '//' ) $state = '//';
+					if( substr( $php, -2 ) == '/*' ) $state = '/*';
+					if( substr( $php, -3 ) == '<<<' ) {
 						$state = '<<<';
 						$id = '';
 					}
+					if( substr( $php, -2 ) == '?>' || $end ) {
+						$state = 'html';
+						$php = preg_replace( '%^php%', '', $php );
+						$php = preg_replace( '%\?>$%', '', $php );
+						if( preg_match( '%\n%', $php ) ) $newcode .= "php\n" . self::tidySection( $php ) . ( $end ? '' : "\n?>" );
+						else $newcode .= "php " . preg_replace( '%^\t+%', '', self::tidySection( $php ) ) . ' ?>';
+						$php = '';
+					}
 				break;
 
-				// We're within a single-quote string
+				// We're within a PHP single-quote string
 				case "'":
-					if( substr( $content, -1 ) == "'" ) {
-						$newcode .= self::preserve( 's1', $content ) . $chr;
-						$state = $content = '';
+					if( substr( $string, -1 ) == "'" ) {
+						$php .= self::preserve( 's1', $string ) . $chr;
+						$state = $string = '';
 					} else {
-						$content .= $chr;
+						$string .= $chr;
 					}
 				break;
 
-				// We're within a double-quote string
+				// We're within a PHP double-quote string
 				case '"':
-					if( substr( $content, -1 ) == '"' ) {
-						$newcode .= self::preserve( 's2', $content ) . $chr;
-						$state = $content = '';
+					if( substr( $string, -1 ) == '"' ) {
+						$php .= self::preserve( 's2', $string ) . $chr;
+						$state = $string = '';
 					} else {
-						$content .= $chr;
+						$string .= $chr;
 					}
 				break;
 
-				// We're within a backtick string
+				// We're within a PHP backtick string
 				case '`':
-					if( substr( $content, -1 ) == '`' ) {
-						$newcode .= self::preserve( 's3', $content ) . $chr;
-						$state = $content = '';
+					if( substr( $string, -1 ) == '`' ) {
+						$php .= self::preserve( 's3', $string ) . $chr;
+						$state = $string = '';
 					} else {
-						$content .= $chr;
+						$string .= $chr;
 					}
 				break;
 
-				// We're within a multiline comment
+				// We're within a multiline PHP comment
 				case "/*":
-					if( substr( $content, -2 ) == '*/' ) {
-						$newcode .= self::preserve( 'c1', $content, 2 ) . "\n";
-						$state = $content = '';
+					if( substr( $string, -2 ) == '*/' ) {
+						$php .= self::preserve( 'c1', $string, 2 ) . "\n";
+						$state = $string = '';
 					} else {
-						$content .= $chr;
+						$string .= $chr;
 					}
 				break;
 
-				// We're within a single line comment
+				// We're within a single line PHP comment
 				case "//":
 					if( $chr == "\n" ) {
-						$newcode .= self::preserve( 'c2', ' ' . trim( $content ), 0 ) . $chr;
-						$state = $content = '';
+						$php .= self::preserve( 'c2', ' ' . trim( $string ), 0 ) . $chr;
+						$state = $string = '';
 					} else {
-						$content .= $chr;
+						$string .= $chr;
 					}
 				break;
 
-				// We're within a Heredoc string
+				// We're within a PHP Heredoc string
 				case "<<<":
 					if( $id ) {
-						if( $chr == ';' && substr( $content, -strlen( $id ) ) == $id ) {
-							$newcode .= self::preserve( 's4',"$id\n$content" ) . $chr;
-							$state = $content = '';
+						if( $chr == ';' && substr( $string, -strlen( $id ) ) == $id ) {
+							$php .= self::preserve( 's4',"$id\n$string" ) . $chr;
+							$state = $string = '';
 						} else {
-							$content .= $chr;
+							$string .= $chr;
 						}
 					} else {
 						if( $chr == "\n" ) {
-							$id = $content;
-							$content = '';
+							$id = $string;
+							$string = '';
 						} else {
-							$content .= $chr;
+							$string .= $chr;
 						}
 					}
 				break;
 			}
 		}
 		$code = $newcode;
-
-		// Remove all indenting and trailing whitespace
-		$code = preg_replace( '%^[ \t]*(.*?)[ \t]*$%m', '$1', $code );
-
-		// Change all remaining whitespace to single spaces
-		$code = preg_replace( '%[ \t]+%', ' ', $code );
 	}
 
 	/**
 	 * Put all the preserved content back in place
 	 */
 	private static function postprocess( &$code ) {
-		if( self::$debug ) print "Postprocessing\n";
+
+		// Allow only single empty lines
+		$code = preg_replace( '%\n\n+%', "\n\n", $code );
 
 		// Put all the preserved code back in opposite order it was preserved
 		foreach( array( 'c1', 'c2', 's4', 's3', 's2', 's1' ) as $k ) {
