@@ -349,7 +349,7 @@ class CodeTidy {
 				$n = ( $diff > 0 ) ? $lastIndent : self::$indent;
 
 				// Special case: Case/Default or }...{ subtract 1 from the intented depth
-				if( preg_match( '%^\s*(case |default[ :]|[\)\}].*?[\(\{])%', $line ) ) {$n--; $line .= 'xxx';}
+				if( preg_match( '%^\s*(case |default[ :]|[\)\}].*?[\(\{])%', $line ) ) $n--;
 
 				// Special case: For content ending in a closing bracket add 1 to indented depth (dodgy)
 				elseif( $bracketLevel < $lastBracketLevel && preg_match( '%^.*?[^\s\(\)\{\};]+.*\)[^\(\)\{\}]*;($| *\/\/)%', $line ) ) $n++;
@@ -362,7 +362,9 @@ class CodeTidy {
 
 				// Only indent if the line is not empty
 				if( trim( $line ) ) $newcode .= $n > 0 ? str_repeat( "\t", $n ) : '';
-print self::$indent . '(' . $n . ') ' . $line . "\n";
+
+				//print self::$indent . '(' . $n . ') ' . $line . "\n";
+
 				// Add the line and prepare to start the next one
 				$newcode .= $line;
 				$line = '';
