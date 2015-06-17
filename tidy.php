@@ -283,8 +283,8 @@ class CodeTidy {
 		$code = preg_replace( '%\}\s*(while.+?;)%', '} $1', $code );
 
 		// Move orphan opening braces to previous line - UNLESS ITS A COMMENT LINE
-		$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
-		$code = preg_replace( '%(?<=\S)\s*\{([ \t]*//)%m', ' {$1', $code );
+		//$code = preg_replace( '%(?<=\S)\s*\{[ \t]*$%m', ' {', $code );
+		//$code = preg_replace( '%(?<=\S)\s*\{([ \t]*//)%m', ' {$1', $code );
 
 		// Format else statements
 		$code = preg_replace( '%\}\s*else\s*\{%', '} else {', $code );
@@ -298,6 +298,7 @@ class CodeTidy {
 		$line = '';                   // The current line
 		$newcode = '';
 		for( $i = 0; $i < strlen( $code ); $i++ ) {
+			$end = $i == strlen( $code ) - 1;
 			$chr = $code[$i];
 			$line .= $chr;
 
@@ -334,7 +335,7 @@ class CodeTidy {
 			if( $chr == '{' ) self::$indent++; elseif( $chr == '}' ) $overshoot ? $overshoot-- : self::$indent--;
 
 			// Newline, add the line to the new version of the code with indenting
-			if( $chr == "\n" ) {
+			if( $chr == "\n" || $end ) {
 
 				// Difference in indent depth during this line
 				$diff = self::$indent - $lastIndent;
@@ -428,8 +429,12 @@ class CodeTidy {
 						$state = 'html';
 						$php = preg_replace( '%^php%', '', $php );
 						$php = preg_replace( '%\?>$%', '', $php );
-						if( preg_match( '%\n%', $php ) ) $newcode .= "php\n" . self::tidySection( $php ) . ( $end ? '' : "\n?>" );
-						else $newcode .= "php " . preg_replace( '%^\t+%', '', self::tidySection( $php ) ) . ' ?>';
+						$tidy = self::tidySection( $php );
+						if( preg_match( '%\n%', trim( $php ) ) ) {
+							$tidy = preg_replace( '%^\n+%', '', $tidy );
+							$tidy = preg_replace( '%\n+$%', '', $tidy );
+							$newcode .= "php\n" . $tidy . ( $end ? '' : "\n?>" );
+						} else $newcode .= "php " . trim( $tidy ) . ' ?>';
 						$php = '';
 					}
 				break;
