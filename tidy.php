@@ -481,7 +481,7 @@ class CodeTidy {
 
 				// We're within a single line PHP comment
 				case "//":
-					if( $chr == "\n" ) {
+					if( $chr == "\n" || $end || substr( $code, $i + 1, 2 ) == '?>' ) {
 						$php .= self::preserve( 'c2', ' ' . trim( $string ), 0 ) . $chr;
 						$state = $string = '';
 					} else {
