@@ -3,7 +3,7 @@
  * WikiSpeedTest - reads file contents and makes articles from them
  *
  * Use wget and date to record execution time, e.g.
- * date +%s.%N && wget -qO - http://localhost/Main_Page?speedtest=1 > /dev/null && date +%s.%N
+ * date +%s.%N && wget -qO /dev/null "http://localhost/Main_Page?speedtest=1"  && date +%s.%N
  *
  * @package MediaWiki
  * @subpackage Extensions
