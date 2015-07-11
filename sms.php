@@ -22,8 +22,10 @@
  *  'From' => '+12019030094',
  *  'ApiVersion' => '2010-04-01',
  */
-mail(
-	'aran@organicdesign.co.nz',
-	'SMS message from ' . $_POST['From'],
-	$_POST['Body']
-);
+if( array_key_exists( 'MessageSid', $_POST ) ) {
+		mail(
+		'aran@organicdesign.co.nz',
+		'SMS message from ' . $_POST['From'],
+		$_POST['Body']
+	);
+} else echo "Invalid input";
