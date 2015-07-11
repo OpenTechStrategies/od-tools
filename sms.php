@@ -23,7 +23,7 @@
  *  'ApiVersion' => '2010-04-01',
  */
 if( array_key_exists( 'MessageSid', $_POST ) ) {
-		mail(
+	mail(
 		'aran@organicdesign.co.nz',
 		'SMS message from ' . $_POST['From'],
 		$_POST['Body']
