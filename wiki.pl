@@ -22,7 +22,7 @@
 # - Changes login and edit to API in Nov 2013 which will prevent it from working in older MediaWiki versions
 #
 
-$::wikipl_version = '1.17.4'; # 2015-06-03
+$::wikipl_version = '1.17.5'; # 2015-07-30
 
 use HTTP::Request;
 use LWP::UserAgent;
@@ -802,6 +802,7 @@ sub wikiAllPages {
 	for( @list ) {
 		s/\\u([0-9a-f]{4})/chr hex $1/eg;
 		$_ = encode( 'utf-8', $_ );
+		s/\\//g;
 	}
 	return @list;
 }
