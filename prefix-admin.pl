@@ -57,6 +57,7 @@ $dbh = DBI->connect( "dbi:mysql:$db1", $user, $pass )
 if( $ARGV[3] eq '--dump' ) {
 	$file = $db2;
 	@tables = getTables( $pre1 );
+	$dbh->disconnect;
 	die "\nNo tables found with prefix \"$pre1\"\n" if $#tables < 0;
 	$tables = join( ' ', @tables );
 	qx( mysqldump -u $user --password='$pass' $db1 $tables > "$file" );
@@ -76,6 +77,7 @@ elsif( $ARGV[3] eq '--delete' ) {
 		$sth->execute() or die "\nCould not drop table: ", $DBI::errstr, "\n";
 	}
 	print "" . (1 + $#tables) . " tables dropped.\n";
+	$dbh->disconnect;
 }
 
 # Do the copy command
@@ -84,6 +86,7 @@ elsif( $ARGV[3] eq '--copy' ) {
 	# Dump first db.pre
 	$tmp1 = '/tmp/' . $db1 . '_' . $pre1 . time() . '.sql';
 	@tables = getTables( $pre1 );
+	$dbh->disconnect;
 	$n = 1 + $#tables;
 	$tables = join( ' ', @tables );
 	qx( mysqldump -u $user --password='$pass' $db1 $tables > "$tmp1" );
@@ -105,6 +108,7 @@ elsif( $ARGV[3] eq '--copy' ) {
 		$sth->execute() or die "\nCould not drop table: ", $DBI::errstr, "\n";
 	}
 	print "" . (1 + $#tables) . " tables dropped.\n";
+	$dbh->disconnect;
 
 	# Rename tables in dump
 	if( $pre1 ne $pre2 ) {
@@ -115,7 +119,6 @@ elsif( $ARGV[3] eq '--copy' ) {
 	# Import tables
 	qx( mysql -u $user --password="$pass" $db2 < $tmp1 );
 	print "$n tables copied from \"$db1\" to \"$db2\"\n";
-
 }
 
 # Return a list of all the tables having the passed prefix
