@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+# Update the main rules DB first
+qx( sa-update );
+
 # Handle false positives
 for (glob "/home/*/Maildir/.INBOX.Not\\ Spam/[cn]??") {
 	s/ /\\ /;
