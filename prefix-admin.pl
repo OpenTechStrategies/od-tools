@@ -86,13 +86,13 @@ elsif( $ARGV[3] eq '--copy' ) {
 	# Dump first db.pre
 	$tmp1 = '/tmp/' . $db1 . '_' . $pre1 . time() . '.sql';
 	@tables = getTables( $pre1 );
-	$dbh->disconnect;
 	$n = 1 + $#tables;
 	$tables = join( ' ', @tables );
 	qx( mysqldump -u $user --password='$pass' $db1 $tables > "$tmp1" );
 
 	# Change connection to seconds db (if different)
 	if( $db1 ne $db2 ) {
+		$dbh->disconnect;
 		$dbh = DBI->connect( "dbi:mysql:$db2", $user, $pass )
 			or die "\nCan't connect to database '$db2': ", $DBI::errstr, "\n";
 	}
