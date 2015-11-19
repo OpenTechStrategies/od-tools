@@ -28,28 +28,51 @@ if( open INPUT, '<', $input ) {
 	
 	$found = 0;
 	$head = 1;
+	$init = 1;
 	$ourtbl = 0;
 	$ourdb = 0;
+	$curdb = 0;
+	$curpre = 0;
+	$lastpre = 0;
 	@databases = ();
+	%prefixes = ();
 
 	# Loop through the input dump pne line at a time
 	while( <INPUT> ) {
 		$line = $_;
 
-		# Skip use statements
-		next if $line =~ /^USE /;
+		# Skip USE statements and comments
+		next if $line =~ /^(USE )/;
+
+		# Keep initial comments
+		if( $line =~ /^--/ ) {
+			next unless $init;
+		} else {
+			$init = 0;
+		}
 
 		# Create database commands determine whether we're in our part of the dump
 		if( $line =~ /^CREATE DATABASE.+?`(\w+)`/ ) {
-			push @databases, $1;
+			$curdb = $1;
+			$pre = 0;
+			$lastpre = 0;
+			$curpre = 0;
+			push @databases, $curdb;
 			$head = 0;
-			$ourdb = ( $1 eq $db )
+			$ourdb = ( $1 eq $db );
 		} else {
 
 			# Create or drop table commands determine whether we're in our part of the database
-			if( $line =~ /^(-- Table structure for table|DROP TABLE IF EXISTS|CREATE TABLE).+?`(\w+)`/ ) {
+			if( $line =~ /^(DROP TABLE IF EXISTS|CREATE TABLE).+?`(\w+)`/ ) {
+				$curtbl = $2;
 				$head = 0;
-				$ourtbl = ( $1 =~ /^$tbl/ or $tbl eq '*' );
+				$ourtbl = ( $curtbl =~ /^$tbl/ or $tbl eq '*' );
+
+				# If the current table uses same prefix-like start and is same as previous add it to prefix list 
+				$pre = $curtbl =~ /^(\w+?_)/ ? $1 : 0;
+				if( $pre and $pre eq $lastpre ) { $curpre = $pre };
+				$lastpre = $pre;
+				$prefixes{$curdb}{$curpre} = 1 if $curpre;
 			}
 
 			# If it's the dump header, or we're within our table and database add this line to the output dump
@@ -64,12 +87,23 @@ if( open INPUT, '<', $input ) {
 	close OUTPUT;
 }
 
+# Database/prefix found and exported
 if( $found ) { print "\nSuccess.\n" }
+
+# Not found, output details about the dump
 else {
 	print "\nNo tables with prefix \"$tbl\" found.\n" unless $found;
 	if( $#databases >= 0 ) {
-		print "\nThis is a multi-database dump containing the following databases:\n\t" . join( "\n\t", @databases ) . "\n";
+		print "\nThis is a multi-database dump containing the following databases and table prefixes:\n";
+		for $db ( @databases ) {
+			print "\t$db\n";
+			print "\t\t$_\n" for keys %{ $prefixes{$db} };
+		}
 		print "\nYou can't use '*' for the database name with a multi-database dump.\n" if $db eq '*';
 	}
-	elsif( $db ne '*' ) { print "\nThis dump contains only a single database, so you must use '*' for the database name.\n" }
+	else {
+		print "\nThis is a single-database dump containing the following table prefixes:\n";
+		print "\t$_\n" for keys %{ $prefixes{0} };
+		print "\nYou must use '*' for the database name.\n" if $db ne '*';
+	}
 }
