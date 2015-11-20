@@ -76,7 +76,7 @@ if( open INPUT, '<', $input ) {
 			}
 
 			# If it's the dump header, or we're within our table and database add this line to the output dump
-			if( $head or ( $ourtbl and ( $#databases < 0 or $ourdb ) ) ) {
+			if( $head or ( $ourtbl and ( ( $#databases < 0 and $db eq '*' ) or $ourdb ) ) ) {
 				$line =~ s/`$tbl/`$rename/g if defined $rename;
 				$found = 1 unless $head;
 				print OUTPUT $line;
@@ -92,7 +92,8 @@ if( $found ) { print "\nSuccess.\n" }
 
 # Not found, output details about the dump
 else {
-	print "\nNo tables with prefix \"$tbl\" found.\n" unless $found;
+	unlink $output;
+	print "\nNo tables founding matching the criteria (prefix \"$tbl\", database \"$db\").\n" unless $found;
 	if( $#databases >= 0 ) {
 		print "\nThis is a multi-database dump containing the following databases and table prefixes:\n";
 		for $db ( @databases ) {
