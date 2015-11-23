@@ -27,7 +27,7 @@ if( open FH, '<', $file ) {
 					# Read the message header
 					sysread FMSG, $content, 1000;
 					close FMSG;
-					print LOG $content . "\n\n";
+					print LOG "Header: $content\n\n";
 
 					# Check if its ours by ID
 					if( $content =~ /\s$id\s/s ) {
@@ -36,12 +36,12 @@ if( open FH, '<', $file ) {
 						# Turn the To and CC headers into lists and then hashes
 						$to = $content =~ /^\s*To:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
 						print LOG 'To: ' . $to . "\n";
-						@to = $to =~ /([0-9a-z_.&-]+\@[0-9a-z_.&-]+)/gi;
+						@to = $to =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 						%to = map { $_ => 1 } @to;
 						print LOG 'To: ' . ( join ', ', keys %to ) . "\n";
 
 						$cc = $content =~ /^\s*CC:\s*(.+?)\s+(\w: )/mis ? $1 : '';
-						@cc = $cc =~ /([0-9a-z_.&-]+\@[0-9a-z_.&-]+)/gi;
+						@cc = $cc =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 						%cc = map { $_ => 1 } @cc;
 						print LOG 'Cc: ' . ( join ', ', keys %cc ) . "\n";
 
