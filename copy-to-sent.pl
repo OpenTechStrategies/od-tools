@@ -30,7 +30,7 @@ if( open FH, '<', $file ) {
 					print LOG "Header: $content\n\n";
 
 					# Check if its ours by ID
-					if( $content =~ /\s$id\s/s ) {
+					if( $content =~ /id\s$id/s ) {
 						print LOG "ID matches\n";
 
 						# Turn the To and CC headers into lists and then hashes
