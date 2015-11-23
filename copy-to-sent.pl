@@ -32,7 +32,7 @@ if( open FH, '<', $file ) {
 					# Read the message header
 					sysread FMSG, $content, 1000;
 					close FMSG;
-					print LOG "Header: $content\n\n";
+					print LOG "Header:\n$content\n\n";
 
 					# Check if its ours by ID
 					if( $content =~ /id\s$id/s ) {
@@ -40,7 +40,6 @@ if( open FH, '<', $file ) {
 
 						# Turn the To and CC headers into lists and then hashes
 						$to = $content =~ /^\s*To:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
-						print LOG 'To: ' . $to . "\n";
 						@to = $to =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 						%to = map { $_ => 1 } @to;
 						print LOG 'To: ' . ( join ', ', keys %to ) . "\n";
@@ -52,9 +51,7 @@ if( open FH, '<', $file ) {
 
 						# Build a Bcc header from all the recipients not in the To or Cc headers
 						@bcc = ();
-						for(@recipients) {
-							push @bcc, $_ unless exists $to{$_} or exists $cc{$_};
-						}
+						for(@recipients) { push @bcc, $_ unless exists $to{$_} or exists $cc{$_} }
 						$bcc = $#bcc < 0 ? 0 : 'Bcc: ' . join(', ', @bcc);
 						print LOG 'Bcc: ' . ( join ', ', @bcc ) . "\n";
 						
@@ -65,7 +62,6 @@ if( open FH, '<', $file ) {
 
 						# Add the Bcc header after the To header
 						$content =~ s/(^\s*To:.+?$)/$1\n$bcc/mi if $bcc;
-						print LOG 'NewContent: ' . $content . "\n\n";
 
 						# Write the new content to the file
 						if(open FMSG,'>', $msg) {
