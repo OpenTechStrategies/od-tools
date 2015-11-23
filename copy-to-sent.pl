@@ -1,4 +1,30 @@
 #!/usr/bin/perl
+#
+# This script copies outgoing emails into the "Sent" maildir so that the client doesn't have to do it.
+#
+# The script is called by the accompanying "exim-copy-to-sent" script which is an Exim4 "system filter"
+#
+# See the following URL for details:
+# https://www.organicdesign.co.nz/Configure_mail_server#Copying_emails_into_the_Sent_folder
+#
+#
+# Copyright (C) 2013-2015 Aran Dunkley
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# http://www.gnu.org/copyleft/gpl.html
+#
 
 # Get the neccesary info about the sent message
 $sender = $ENV{SENDER};
