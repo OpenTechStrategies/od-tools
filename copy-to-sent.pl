@@ -6,8 +6,8 @@ $id = $ENV{MESSAGE_ID};
 # Start logging if the file exists or output to /dev/null otherwise
 $log = '/var/www/copy-to-sent.log';
 open LOG, '>>', -e $log ? $log : '/dev/null';
+print LOG $content . "ID: $id\n";
 print LOG $content . "\nSender: $sender\n";
-print LOG $content . "\nID: $id\n";
 print LOG 'Recipients: ' . $ARGV[0] . "\n";
 
 # Local users are in virtual.users in our configuration
