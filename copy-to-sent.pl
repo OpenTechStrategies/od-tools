@@ -3,11 +3,14 @@ $sender = $ENV{SENDER};
 $id = $ENV{MESSAGE_ID};
 @recipients = $ARGV[0] =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 
-open LOG, '>>', '/var/www/copy-to-sent.log';
+# Start logging if the file exists or output to /dev/null otherwise
+$log = '/var/www/copy-to-sent.log';
+open LOG, '>>', -e $log ? $log : '/dev/null';
+print LOG $content . "\nSender: $sender\n";
 print LOG $content . "\nID: $id\n";
-print LOG  $ARGV[0] . "\n";
-print LOG  ( join '; ', @recipients ) . "\n";
+print LOG 'Recipients: ' . $ARGV[0] . "\n";
 
+# Local users are in virtual.users in our configuration
 $file = "/etc/exim4/virtual.users";
 if( open FH, '<', $file ) {
 	sysread FH, $users, -s $file;
