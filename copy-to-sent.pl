@@ -31,6 +31,7 @@ if( open FH, '<', $file ) {
 
 					# Check if its ours by ID
 					if( $content =~ /\s$id\s/s ) {
+						print LOG "ID matches\n";
 
 						# Turn the To and CC headers into lists and then hashes
 						$to = $content =~ /^\s*To:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
