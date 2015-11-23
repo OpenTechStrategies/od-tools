@@ -6,7 +6,7 @@ $id = $ENV{MESSAGE_ID};
 open LOG, '>>', '/var/www/copy-to-sent.log';
 print LOG $content . "\nID: $id\n";
 print LOG  $ARGV[0] . "\n";
-print LOG  ( join ', ', @recipients ) . "\n";
+print LOG  ( join '; ', @recipients ) . "\n";
 
 $file = "/etc/exim4/virtual.users";
 if( open FH, '<', $file ) {
