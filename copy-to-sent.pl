@@ -4,11 +4,11 @@ $id = $ENV{MESSAGE_ID};
 @recipients = $ARGV[0] =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 
 open LOG, '>>', '/var/www/copy-to-sent.log';
-print LOG, $ARGV[0] . "\n";
-print LOG, ( join ', ', @recipients ) . "\n";
+print LOG  $ARGV[0] . "\n";
+print LOG  ( join ', ', @recipients ) . "\n";
 
 $file = "/etc/exim4/virtual.users";
-if( open FH,'<', $file ) {
+if( open FH, '<', $file ) {
 	sysread FH, $users, -s $file;
 	close FH;
 
