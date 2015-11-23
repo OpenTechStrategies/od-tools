@@ -38,12 +38,13 @@ if( open FH, '<', $file ) {
 					if( $content =~ /id\s$id/s ) {
 						print LOG "ID matches\n";
 
-						# Turn the To and CC headers into lists and then hashes
+						# Extract the addresses from the To header
 						$to = $content =~ /^\s*To:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
 						@to = $to =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 						%to = map { $_ => 1 } @to;
 						print LOG 'To: ' . ( join ', ', keys %to ) . "\n";
 
+						# Extract the addresses from the Cc header
 						$cc = $content =~ /^\s*CC:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
 						@cc = $cc =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 						%cc = map { $_ => 1 } @cc;
