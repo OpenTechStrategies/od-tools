@@ -32,7 +32,7 @@ $id = $ENV{MESSAGE_ID};
 @recipients = $ARGV[0] =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 
 # Start logging if the file exists or output to /dev/null otherwise
-$log = '/var/www/copy-to-sent.log';
+$log = '/var/log/copy-to-sent.log';
 open LOG, '>>', -e $log ? $log : '/dev/null';
 print LOG $content . "ID: $id\n";
 print LOG $content . "\nSender: $sender\n";
@@ -48,8 +48,8 @@ if( open FH, '<', $file ) {
 	if( $users =~ /^$sender\s*:\s*(.+?)\@localhost\s*$/m ) {
 		$user = $1;
 
-		# Filter the users who use web-mail and have it copy to sent for them
-		if( $user ne 'beth' ) {
+		# Don't process anything if the user has a "dont-copy-to-sent" veto file in their home dir
+		unless( -e "/home/$user/dont-copy-to-sent" ) {
 
 			# Scan the new messages in their Sent folder
 			for my $msg (glob "/home/$user/Maildir/.Sent/new/*") {
