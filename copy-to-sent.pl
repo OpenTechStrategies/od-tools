@@ -21,12 +21,12 @@ if( open FH, '<', $file ) {
 
 			# Scan the new messages in their Sent folder
 			for my $msg (glob "/home/$user/Maildir/.Sent/new/*") {
-				print FH "$msg\n";
 				if( open FMSG,'<', $msg ) {
 					
 					# Read the message header
 					sysread FMSG, $content, 600;
 					close FMSG;
+					print LOG $content . "\n\n";
 
 					# Check if its ours by ID
 					if( $content =~ /\s$id\s/s ) {
