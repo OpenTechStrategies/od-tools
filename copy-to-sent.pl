@@ -24,7 +24,7 @@ if( open FH, '<', $file ) {
 				if( open FMSG,'<', $msg ) {
 					
 					# Read the message header
-					sysread FMSG, $content, 600;
+					sysread FMSG, $content, 1000;
 					close FMSG;
 					print LOG $content . "\n\n";
 
