@@ -32,7 +32,7 @@ if( open FH, '<', $file ) {
 					if( $content =~ /\s$id\s/s ) {
 
 						# Turn the To and CC headers into lists and then hashes
-						$to = $content =~ /^\s*To:\s*(.+?)[\r\n ]+(\w: )/mis ? $1 : '';
+						$to = $content =~ /^\s*To:\s*(.+?)$/mis ? $1 : '';
 						print LOG 'To: ' . $to . "\n";
 						@to = $to =~ /([0-9a-z_.&-]+\@[0-9a-z_.&-]+)/gi;
 						%to = map { $_ => 1 } @to;
