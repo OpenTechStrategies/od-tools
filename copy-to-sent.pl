@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+
+# Get the neccesary info about the sent message
 $sender = $ENV{SENDER};
 $id = $ENV{MESSAGE_ID};
 @recipients = $ARGV[0] =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
