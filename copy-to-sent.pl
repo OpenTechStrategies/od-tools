@@ -40,7 +40,7 @@ if( open FH, '<', $file ) {
 						%to = map { $_ => 1 } @to;
 						print LOG 'To: ' . ( join ', ', keys %to ) . "\n";
 
-						$cc = $content =~ /^\s*CC:\s*(.+?)\s+(\w: )/mis ? $1 : '';
+						$cc = $content =~ /^\s*CC:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
 						@cc = $cc =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 						%cc = map { $_ => 1 } @cc;
 						print LOG 'Cc: ' . ( join ', ', keys %cc ) . "\n";
