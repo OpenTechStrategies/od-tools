@@ -4,6 +4,7 @@ $id = $ENV{MESSAGE_ID};
 @recipients = $ARGV[0] =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 
 open LOG, '>>', '/var/www/copy-to-sent.log';
+print LOG $content . "\nID: $id\n";
 print LOG  $ARGV[0] . "\n";
 print LOG  ( join ', ', @recipients ) . "\n";
 
