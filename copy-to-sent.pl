@@ -2,6 +2,11 @@
 $sender = $ENV{SENDER};
 $id = $ENV{MESSAGE_ID};
 @recipients = $ARGV[0] =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
+
+open LOG, '>>', '/var/www/copy-to-sent.log';
+print LOG, $ARGV[0] . "\n";
+print LOG, ( join ', ', @recipients ) . "\n";
+
 $file = "/etc/exim4/virtual.users";
 if( open FH,'<', $file ) {
 	sysread FH, $users, -s $file;
@@ -35,9 +40,12 @@ if( open FH,'<', $file ) {
 						$to = $content =~ /^\s*To:\s*(.+?)\s+(\w: )/mis ? $1 : '';
 						@to = $to =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 						%to = map { $_ => 1 } @to;
+						print LOG 'To: ' . ( join ', ', keys %to ) . "\n";
+
 						$cc = $content =~ /^\s*CC:\s*(.+?)\s+(\w: )/mis ? $1 : '';
 						@cc = $cc =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
 						%cc = map { $_ => 1 } @cc;
+						print LOG 'Cc: ' . ( join ', ', keys %cc ) . "\n";
 
 						# Build a Bcc header from all the recipients not in the To or Cc headers
 						@bcc = ();
@@ -45,6 +53,7 @@ if( open FH,'<', $file ) {
 							push @bcc, $_ unless exists $to{$_} or exists $cc{$_};
 						}
 						$bcc = $#bcc < 0 ? 0 : 'Bcc: ' . join(', ', @bcc);
+						print LOG 'Bcc: ' . ( join ', ', @bcc ) . "\n";
 						
 						# Add the Bcc header after the To header
 						$content =~ s/(^\s*To:.+?$)/$1\n$bcc/mi if $bcc;
@@ -63,5 +72,5 @@ if( open FH,'<', $file ) {
 		}
 	}
 }
-
+close LOG;
 
