@@ -49,7 +49,7 @@ if( open FH, '<', $file ) {
 		$user = $1;
 
 		# Don't process anything if the user has a "dont-copy-to-sent" veto file in their home dir
-		unless( -e "/home/$user/dont-copy-to-sent" ) {
+		if( -e "/home/$user/dont-copy-to-sent" ) { print LOG "User \"$user\" has a veto file, exiting." } else {
 
 			# Scan the new messages in their Sent folder
 			for my $msg (glob "/home/$user/Maildir/.Sent/new/*") {
