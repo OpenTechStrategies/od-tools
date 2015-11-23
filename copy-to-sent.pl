@@ -31,11 +31,6 @@ if( open FH, '<', $file ) {
 					# Check if its ours by ID
 					if( $content =~ /\s$id\s/s ) {
 
-						# Get the whole message
-						open FMSG,'<', $msg;
-						sysread FMSG, $content, -s $msg;
-						close FMSG;
-
 						# Turn the To and CC headers into lists and then hashes
 						$to = $content =~ /^\s*To:\s*(.+?)\s+(\w: )/mis ? $1 : '';
 						print LOG 'To: ' . $to . "\n";
@@ -56,8 +51,14 @@ if( open FH, '<', $file ) {
 						$bcc = $#bcc < 0 ? 0 : 'Bcc: ' . join(', ', @bcc);
 						print LOG 'Bcc: ' . ( join ', ', @bcc ) . "\n";
 						
+						# Get the whole message
+						open FMSG, '<', $msg;
+						sysread FMSG, $content, -s $msg;
+						close FMSG;
+
 						# Add the Bcc header after the To header
 						$content =~ s/(^\s*To:.+?$)/$1\n$bcc/mi if $bcc;
+						print LOG 'NewContent: ' . $content . "\n\n";
 
 						# Write the new content to the file
 						if(open FMSG,'>', $msg) {
