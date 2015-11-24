@@ -1,8 +1,6 @@
 #!/usr/bin/perl
 #
-# This script copies outgoing emails into the "Sent" maildir so that the client doesn't have to do it.
-#
-# The script is called by the accompanying "exim-copy-to-sent" script which is an Exim4 "system filter"
+# This script adds the BCC field and marks as read the messages copied into the "Sent" maildir by the "exim-copy-to-sent" system filter.
 #
 # See the following URL for details:
 # https://www.organicdesign.co.nz/Configure_mail_server#Copying_emails_into_the_Sent_folder
@@ -48,57 +46,53 @@ if( open FH, '<', $file ) {
 	if( $users =~ /^$sender\s*:\s*(.+?)\@localhost\s*$/m ) {
 		$user = $1;
 
-		# Don't process anything if the user has a "dont-copy-to-sent" veto file in their home dir
-		if( -e "/home/$user/dont-copy-to-sent" ) { print LOG "User \"$user\" has a veto file, exiting.\n" } else {
+		# Scan the new messages in their Sent folder
+		for my $msg (glob "/home/$user/Maildir/.Sent/new/*") {
+			if( open FMSG,'<', $msg ) {
+				
+				# Read the message header
+				sysread FMSG, $content, 1000;
+				close FMSG;
+				print LOG "Header:\n$content\n\n";
 
-			# Scan the new messages in their Sent folder
-			for my $msg (glob "/home/$user/Maildir/.Sent/new/*") {
-				if( open FMSG,'<', $msg ) {
+				# Check if its ours by ID
+				if( $content =~ /id\s$id/s ) {
+					print LOG "ID matches\n";
+
+					# Extract the addresses from the To header
+					$to = $content =~ /^\s*To:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
+					@to = $to =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
+					%to = map { $_ => 1 } @to;
+					print LOG 'To: ' . ( join ', ', keys %to ) . "\n";
+
+					# Extract the addresses from the Cc header
+					$cc = $content =~ /^\s*CC:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
+					@cc = $cc =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
+					%cc = map { $_ => 1 } @cc;
+					print LOG 'Cc: ' . ( join ', ', keys %cc ) . "\n";
+
+					# Build a Bcc header from all the recipients not in the To or Cc headers
+					@bcc = ();
+					for(@recipients) { push @bcc, $_ unless exists $to{$_} or exists $cc{$_} }
+					$bcc = $#bcc < 0 ? 0 : 'Bcc: ' . join(', ', @bcc);
+					print LOG 'Bcc: ' . ( join ', ', @bcc ) . "\n";
 					
-					# Read the message header
-					sysread FMSG, $content, 1000;
+					# Get the whole message
+					open FMSG, '<', $msg;
+					sysread FMSG, $content, -s $msg;
 					close FMSG;
-					print LOG "Header:\n$content\n\n";
 
-					# Check if its ours by ID
-					if( $content =~ /id\s$id/s ) {
-						print LOG "ID matches\n";
+					# Add the Bcc header after the To header
+					$content =~ s/(^\s*To:.+?$)/$1\n$bcc/mi if $bcc;
 
-						# Extract the addresses from the To header
-						$to = $content =~ /^\s*To:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
-						@to = $to =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
-						%to = map { $_ => 1 } @to;
-						print LOG 'To: ' . ( join ', ', keys %to ) . "\n";
-
-						# Extract the addresses from the Cc header
-						$cc = $content =~ /^\s*CC:\s*(.+?)\s+(\w+: )/mis ? $1 : '';
-						@cc = $cc =~ /([0-9a-z_.&-]+@[0-9a-z_.&-]+)/gi;
-						%cc = map { $_ => 1 } @cc;
-						print LOG 'Cc: ' . ( join ', ', keys %cc ) . "\n";
-
-						# Build a Bcc header from all the recipients not in the To or Cc headers
-						@bcc = ();
-						for(@recipients) { push @bcc, $_ unless exists $to{$_} or exists $cc{$_} }
-						$bcc = $#bcc < 0 ? 0 : 'Bcc: ' . join(', ', @bcc);
-						print LOG 'Bcc: ' . ( join ', ', @bcc ) . "\n";
-						
-						# Get the whole message
-						open FMSG, '<', $msg;
-						sysread FMSG, $content, -s $msg;
+					# Write the new content to the file
+					if(open FMSG,'>', $msg) {
+						syswrite FMSG, $content;
 						close FMSG;
-
-						# Add the Bcc header after the To header
-						$content =~ s/(^\s*To:.+?$)/$1\n$bcc/mi if $bcc;
-
-						# Write the new content to the file
-						if(open FMSG,'>', $msg) {
-							syswrite FMSG, $content;
-							close FMSG;
-						}
-
-						# Mark as read
-						rename $msg, "$msg:2,S";
 					}
+
+					# Mark as read
+					rename $msg, "$msg:2,S";
 				}
 			}
 		}
