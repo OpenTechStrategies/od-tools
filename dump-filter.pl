@@ -10,6 +10,7 @@ $args     = join ' ', @ARGV;
 $rename = $1 if $args =~ /--rename=(\w+)/;
 $input  = $1 if $args =~ /--input=(\S+)/;
 $output = $1 if $args =~ /--output=(\S+)/;
+$invert = $1 if $args =~ /--invert/;
 
 die "\nUsage:
 	--input=input-dump-file.sql
@@ -17,6 +18,8 @@ die "\nUsage:
 	--output=output-dump-file.sql
 
 	--filter=dbname.table-prefix | dbname.* | *.table-prefix
+
+	--invert (optionally invert the selection for table names)
 
 	--rename=new-table-prefix (optional)
 
@@ -37,7 +40,7 @@ if( open INPUT, '<', $input ) {
 	@databases = ();
 	%prefixes = ();
 
-	# Loop through the input dump pne line at a time
+	# Loop through the input dump one line at a time
 	while( <INPUT> ) {
 		$line = $_;
 
@@ -66,7 +69,11 @@ if( open INPUT, '<', $input ) {
 			if( $line =~ /^(DROP TABLE IF EXISTS|CREATE TABLE).+?`(\w+)`/ ) {
 				$curtbl = $2;
 				$head = 0;
-				$ourtbl = ( $curtbl =~ /^$tbl/ or $tbl eq '*' );
+				if( $invert ) {
+					$ourtbl = ( $curtbl !~ /^$tbl/ or $tbl eq '*' );
+				} else {
+					$ourtbl = ( $curtbl =~ /^$tbl/ or $tbl eq '*' );
+				}
 
 				# If the current table uses same prefix-like start and is same as previous add it to prefix list 
 				$pre = $curtbl =~ /^(\w+?_)/ ? $1 : 0;
