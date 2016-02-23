@@ -61,3 +61,5 @@ sub readFile {
 		return $out;
 	}
 }
+
+1;
