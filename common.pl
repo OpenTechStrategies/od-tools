@@ -13,7 +13,7 @@ $date = strftime( '%a%Y%m%d', localtime );
 # Make a tmp string for filenames
 $tmp = md5_base64( Time::HiRes::time . rand() );
 $tmp =~ s/\W//g;
-$tmp = "/tmp/vocl-" . substr( $tmp, 1, 5 );
+$tmp = substr( $tmp, 1, 5 );
 
 # Set up a client for making HTTP requests and don't bother verifying SSL certs
 $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
