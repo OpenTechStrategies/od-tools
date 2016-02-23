@@ -1,40 +1,11 @@
 #!/usr/bin/perl
-use POSIX qw(strftime setsid);
-use HTTP::Request;
-use LWP::UserAgent;
-$date = strftime( '%a%Y%m%d', localtime );
+require '/var/www/tools/common.pl';
 
 # Percentage over ticker price we want to know about
 $margin = $ARGV[0];
 
 # Minimum volume we want to know about
 $minimum = $ARGV[1];
-
-# Set up a client for making HTTP requests and don't bother verifying SSL certs
-$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
-$ua = LWP::UserAgent->new( agent => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.14)' );
-
-# Send an email
-sub email {
-	$to = shift;
-	$subject = shift;
-	$body = shift;
-	$tmp = "/tmp/mail.txt";
-	open FH,'>', $tmp;
-	print FH $body;
-	close FH;
-	qx( mail -s "$subject" "$to" < $tmp );
-	qx( rm -f $tmp );
-}
-
-# Return passed number formatted as dollars
-sub dollar {
-	my $x = (shift) + 0.0001;
-	$x =~ s/^(.+?\...).+/$1/;
-	$x =~ s/(\d)(?=\d\d\d\.)/$1,/;
-	$x =~ s/(\d)(?=\d\d\d,)/$1,/;
-	return "\$$x";
-}
 
 # Get the btc ticker NZD price
 $src = $ua->get( "http://blockchain.info/ticker" )->content;

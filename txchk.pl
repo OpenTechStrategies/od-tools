@@ -16,14 +16,9 @@
 # License   : GPL (http://www.gnu.org/copyleft/gpl.html)
 # Donations : 19BcAkFCok8VRM7kktc4kRhKnr5D51NxJd
 #
-use HTTP::Request;
-use LWP::UserAgent;
 use JSON qw( decode_json );
 use Cwd qw( realpath );
-
-# Set up a client for making HTTP requests and don't bother verifying SSL certs
-$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
-$ua = LWP::UserAgent->new();
+require '/var/www/tools/common.pl';
 
 # Change to the directory the code's in
 chdir $1 if realpath($0) =~ m|^(.+)/|;
@@ -76,13 +71,8 @@ while(<FH>) {
 				$msg .= "The current bitcoin price is \$" . dollar($btc) . " USD";
 
 				# Send the message to the listed email address
-				$tmp = "/tmp/mail.txt";
-				open MSG,'>', $tmp;
-				print MSG $msg;
-				close MSG;
 				$email =~ s/@/\\@/;
-				qx( mail -s "You received $tx BTC" $email < $tmp );
-				qx( rm -f $tmp );
+				email( $email, "You received $tx BTC", $msg );
 			}
 		}
 	}
@@ -94,15 +84,6 @@ if($changed) {
 	open FH, '>', "txchk.hist";
 	print FH "$_ $hist{$_}\n" for keys %hist;
 	close FH;
-}
-
-# Sub to format numbers as 2dp with commas
-sub dollar {
-	my $x = (shift) + 0.0001;
-	$x =~ s/^(.+?\...).+/$1/;
-	$x =~ s/(\d)(?=\d\d\d\.)/$1,/;
-	$x =~ s/(\d)(?=\d\d\d,)/$1,/;
-	return $x;
 }
 
 # Get the amount received by the passed address in the passed txid
