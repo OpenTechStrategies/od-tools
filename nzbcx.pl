@@ -7,6 +7,9 @@ $margin = $ARGV[0];
 # Minimum volume we want to know about
 $minimum = $ARGV[1];
 
+# Print only
+$print = $ARGV[2];
+
 # Get the btc ticker NZD price
 $src = $ua->get( "http://blockchain.info/ticker" )->content;
 $btc = $src =~ /NZD.+?15m.+?([0-9.]{3,})/ ? $1 : 'ERROR';
@@ -30,5 +33,6 @@ for my $price ( keys %asks ) {
 # Send the info
 if( $some >= $minimum ) {
 	$out = "The BTC ticker price is NZD " . dollar( $btc ) . ".\nThere are $some BTC available within $margin\% of this price:\n$out";
-	email( "aran\@organicdesign.co.nz", 'Some BTC available on NZBCX', $out );
+	print "\n$out\n\n" if $print;
+	email( "aran\@organicdesign.co.nz", 'Some BTC available on NZBCX', $out ) unless $print;
 }
