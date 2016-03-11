@@ -25,5 +25,5 @@ $domains = join ' ', @domains;
 
 # Run the letsencrypt renewal command
 $cmd = "letsencrypt-auto certonly --keep-until-expiring --expand --webroot -w $root $domains";
-if( $ARGV[0] eq '--print' ) { print "\m\n$cmd\n" }
+if( $args =~ '--print' ) { print "\m\n$cmd\n" }
 else { qx( $cmd ) }
