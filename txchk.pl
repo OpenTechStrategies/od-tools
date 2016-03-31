@@ -23,6 +23,10 @@ require '/var/www/tools/common.pl';
 # Change to the directory the code's in
 chdir $1 if realpath($0) =~ m|^(.+)/|;
 
+# Use the supplied conf file or default to ./txchk.conf
+$conf = "txchk.conf";
+$conf = $ARGV[0] if $ARGV[0];
+
 # Get the current bitcoin price from blockchain.info
 $src = $ua->get( "http://blockchain.info/ticker" )->content;
 $btc = $src =~ /USD.+?15m.+?([0-9.]{3,})/ ? $1 : 'ERROR';
@@ -37,7 +41,7 @@ if(-e "txchk.hist") {
 
 # Loop through each line in the config
 $changed = 0;
-open FH, '<', "txchk.conf";
+open FH, '<', $conf;
 while(<FH>) {
 
 	# If the line has a bitcoin and email address,
