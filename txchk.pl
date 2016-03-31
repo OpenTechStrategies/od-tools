@@ -4,7 +4,7 @@
 #
 # It requires a file in the same directory called txchk.conf which has a bitcoin address and email address
 # on each line, for exmaple:
-# 19BcAkFCok8VRM7kktc4kRhKnr5D51NxJd (Organic Design donations)		donations@organicdesign.co.nz
+# 18D9441cFFwRnoeTfezwSrZYbGKwGGymzh (Organic Design donations)		donations@organicdesign.co.nz
 #
 # NOTES:
 # - The friendly name for the bitcoin address is optional
@@ -14,7 +14,7 @@
 #
 # Author    : Aran Dunkley (http://www.organicdesign.co.nz/aran)
 # License   : GPL (http://www.gnu.org/copyleft/gpl.html)
-# Donations : 19BcAkFCok8VRM7kktc4kRhKnr5D51NxJd
+# Donations : 18D9441cFFwRnoeTfezwSrZYbGKwGGymzh
 #
 use JSON qw( decode_json );
 use Cwd qw( realpath );
