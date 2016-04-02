@@ -20,15 +20,18 @@ $src =~ s/^.+?id\s*=\s*"live_asks".+?<tbody.*?>\s*(.+?)\s*<\/tbody>.+$/$1/s;
 %asks = $src =~ />([0-9.]+)<.+?>([0-9.]+)</sg;
 
 # Add up any volume that is within 25% of the ticker price
-$out = '';
+%results = ();
 $some = 0;
 for my $price ( keys %asks ) {
 	if( $price < $btc * (1 + $margin / 100) ) {
 		$volume = substr( $asks{$price}, 0, 5);
-		$out .= "$volume @ " . dollar( $price ) . "\n";
+		$results{$price} = "$volume @ " . dollar( $price ) . "\n";
 		$some += $volume;
 	}
 }
+
+# Add results to output sorted by price
+$out .= $results{$_} for sort keys %results;
 
 # Send the info
 if( $some >= $minimum ) {
