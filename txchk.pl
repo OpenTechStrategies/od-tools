@@ -67,7 +67,7 @@ while(<FH>) {
 				# Get the amount sent to our address in this transaction
 				$tx = get_tx_info( $raw, $txid );
 				$txd = dollar( $tx * $btc );
-				$tx =~ s/(\d{8})\d+/$1/;		
+				$tx =~ s/(\d{8})\d+/$1/;
 
 				# Compose a message about this transaction
 				$msg = "You received $tx BTC (\$$txd) to address $addr\n\n";
