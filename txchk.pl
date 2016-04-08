@@ -75,7 +75,6 @@ while(<FH>) {
 				$msg .= "The current bitcoin price is " . dollar($btc) . " USD";
 
 				# Send the message to the listed email address
-				$email =~ s/@/\\@/;
 				email( $email, "You received $tx BTC", $msg );
 			}
 		}
