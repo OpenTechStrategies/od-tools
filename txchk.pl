@@ -70,7 +70,7 @@ while(<FH>) {
 				$tx =~ s/(\d{8})\d+/$1/;
 
 				# Compose a message about this transaction
-				$msg = "You received $tx BTC (\$$txd) to address $addr\n\n";
+				$msg = "You received $tx BTC ($txd) to address $addr\n\n";
 				$msg .= "The transaction ID is $txid\n\n";
 				$msg .= "The current bitcoin price is " . dollar($btc) . " USD";
 
