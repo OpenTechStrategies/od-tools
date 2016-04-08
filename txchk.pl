@@ -72,7 +72,7 @@ while(<FH>) {
 				# Compose a message about this transaction
 				$msg = "You received $tx BTC (\$$txd) to address $addr\n\n";
 				$msg .= "The transaction ID is $txid\n\n";
-				$msg .= "The current bitcoin price is \$" . dollar($btc) . " USD";
+				$msg .= "The current bitcoin price is " . dollar($btc) . " USD";
 
 				# Send the message to the listed email address
 				$email =~ s/@/\\@/;
