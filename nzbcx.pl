@@ -38,4 +38,5 @@ if( $some >= $minimum ) {
 	$out = "The BTC ticker price is NZD " . dollar( $btc ) . ".\nThere are $some BTC available within $margin\% of this price:\n$out";
 	print "\n$out\n\n" if $print;
 	email( "aran\@organicdesign.co.nz", 'Some BTC available on NZBCX', $out ) unless $print;
+	email( "rob\@mintmedia.co.nz", 'Some BTC available on NZBCX', $out ) unless $print;
 }

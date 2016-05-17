@@ -1,3 +1,4 @@
 #!/bin/sh
 echo "Welcome to Organic Design Docker image\n";
 service nginx start
+ipfs init
