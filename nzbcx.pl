@@ -25,7 +25,7 @@ $some = 0;
 for my $price ( keys %asks ) {
 	if( $price < $btc * (1 + $margin / 100) ) {
 		$volume = substr( $asks{$price}, 0, 5);
-		$results{$price} = "$volume @ " . dollar( $price ) . "\n";
+		$results{$price} = "$volume @ " . dollar( $price ) . " (" . dollar( $volume * $price ) . ")\n";
 		$some += $volume;
 	}
 }
