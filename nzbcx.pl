@@ -31,7 +31,7 @@ for my $price ( keys %asks ) {
 }
 
 # Add results to output sorted by price
-$out .= $results{$_} for sort keys %results;
+$out .= $results{$_} for sort {$a<=>$b} keys %results;
 
 # Send the info
 if( $some >= $minimum ) {
