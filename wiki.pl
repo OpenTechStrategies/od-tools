@@ -73,7 +73,7 @@ $::client = LWP::UserAgent->new(
 	agent      => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.14)',
 	from       => 'wiki.pl@organicdesign.co.nz',
 	timeout    => 10,
-	max_size   => 100000,
+	max_size   => 1000000,
 	ssl_opts   => { verify_hostname => 0, SSL_verify_mode => SSL_VERIFY_NONE }
 );
 
