@@ -16,7 +16,6 @@
 # License   : GPL (http://www.gnu.org/copyleft/gpl.html)
 # Donations : 18D9441cFFwRnoeTfezwSrZYbGKwGGymzh
 #
-use JSON qw( decode_json );
 use Cwd qw( realpath );
 require '/var/www/tools/common.pl';
 
