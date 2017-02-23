@@ -22,7 +22,7 @@
 # - Changes login and edit to API in Nov 2013 which will prevent it from working in older MediaWiki versions
 #
 
-$::wikipl_version = '1.17.5'; # 2015-07-30
+$::wikipl_version = '1.17.6'; # 2017-02-23
 
 use HTTP::Request;
 use LWP::UserAgent;
@@ -72,7 +72,7 @@ $::client = LWP::UserAgent->new(
 	cookie_jar => {},
 	agent      => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.14)',
 	from       => 'wiki.pl@organicdesign.co.nz',
-	timeout    => 10,
+	timeout    => 60,
 	max_size   => 1000000,
 	ssl_opts   => { verify_hostname => 0, SSL_verify_mode => SSL_VERIFY_NONE }
 );
