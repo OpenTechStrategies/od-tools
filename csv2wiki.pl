@@ -3,7 +3,7 @@
 # Copyright (C) 2008-2010 Aran Dunkley, Marcus Davy and others.
 #
 # Copyright (C) 2017 Open Tech Strategies, LLC  (modifications:
-#   https://github.com/OpenTechStrategies/od-tools/blob/master/csv2wiki.pl)
+#   https://github.com/OpenTechStrategies/od-tools/blob/ots-experimental/csv2wiki.pl)
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
