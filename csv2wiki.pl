@@ -23,7 +23,9 @@
 # Todo
 # Make it so that if there is no title then it increments
 # $hashref = { $wikitext =~ /\{{3}(.+?)(\|.*?)?\}{3}/g }
-require( '/var/www/tools/wiki.pl' );
+require( './wiki.pl' );
+
+use Text::CSV;
 
 $csv2wiki_version = '2.0.1'; # 2009-12-15
  
@@ -61,32 +63,34 @@ if ( open JOB, '<', $ARGV[0] ) {
   
 # Log in to the wiki and open input file
 wikiLogin( $wiki, $user, $pass ) or die "Couldn't log $user in to $wiki";
-open CSV, '<', $csv or die "Couldn't open input file '$csv'!";
+
+# Create a CSV parser.  The binary=>1 flag is needed for multiline fields, as per
+# http://search.cpan.org/~ishigaki/Text-CSV-1.91/lib/Text/CSV.pm#Embedded_newlines
+my $csv_parser = Text::CSV->new({ binary => 1 });
 
 # Process the records
-my @fields = ();
 my %lut = ();
 my $wptr = 0;
-while ( my $row = <CSV> ) {
-	$row =~ s/^\s*['"]?(.+?)['"]?\s*$/$1/g;
-	my @data = split /['"]?$sep['"]?/, $row;
+
+open(my $csv_stream, '<', $csv) or die "Couldn't open input file '$csv'!";
+while ( my $row = $csv_parser->getline ($csv_stream) ) {
+	my @fields = @$row;
+
+        print "KFF:\n";
+        print "$fields[0]: $fields[5] ($fields[4])\n";
+        print "$#fields\n";
+        print "\n";
 
 	# If this is the first row, define the columns and a reverse lookup
 	if ( $wptr == 0 ) {
-		for ( @data ) {
-			s/\W+/_/g;
-			s/^_+//;
-			s/_+$//;
-			push @fields, $_;
-		}
-		$lut{lc $data[$_]} = $_ for 0 .. $#data;
+		# TODO: Some code removed here might actually have been
+		# important for creating the page later.  Check back.
+		$lut{lc $fields[$_]} = $_ for 0 .. $#fields;
 	}
-
-	# Build the record as wikitext template syntax
-	else {
+	else {  # Build the record as wikitext template syntax
 		my $tmpl = "{{$template";
 		my $i = -1;
-		for ( @data ) {
+		for ( @fields ) {
 			s/^\s*(.+?)\s*$/$1/g;
 			$tmpl .= $fields[++$i] ? "\n | $fields[$i] = $_" : ( $_ ? $multisep . $_ : '' );
 		}
@@ -95,7 +99,7 @@ while ( my $row = <CSV> ) {
 		# Determine title for the record
 		my $title = $titleformat;
 		if ( $title ) {
-			$title =~ s/\$(\w+)/ buildTitle( $1, \@data ) /eg;
+			$title =~ s/\$(\w+)/ buildTitle( $1, \@fields ) /eg;
 		} else {
 			$title = wikiGuid();
 		}
